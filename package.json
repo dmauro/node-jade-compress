@@ -1,0 +1,24 @@
+{
+  "name": "node-jade-compress",
+  "version": "0.0.1",
+  "description": "An asynchronous Javascript/Coffeescript & CSS/SASS compressor for the Jade templating engine.",
+  "main": "index.coffee",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dmauro/node-jade-compress.git"
+  },
+  "keywords": [
+    "Compress",
+    "Jade",
+    "Coffee",
+    "CoffeeScript",
+    "SASS",
+    "scsss",
+    "compressor"
+  ],
+  "author": "David Mauro",
+  "license": "BSD"
+}

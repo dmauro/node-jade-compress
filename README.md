@@ -54,6 +54,7 @@ CONS:
 
 
 TODOs:
+* Module testing
 * Add support for non-local files in compress filters.
 * Handle someone requesting a cache file while it's being created.
 * Put hashes in a db, allow user to supply a store.
