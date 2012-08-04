@@ -3,6 +3,9 @@ node-jade-compress
 
 An asynchronous Javascript/Coffeescript &amp; CSS/SASS compressor for the Jade templating engine.
 
+DEPENDENCIES:
+coffee-script, connect, express, jade, mime, uglify-js, sqwish
+
 How does it work?
 
 We add compress_js and compress_css filters to the Jade filter list. You can supply the js filter
@@ -12,8 +15,9 @@ a /cache directory. Any .js or .css requests to that directory are expected to b
 look up what file cache is associated with that hash, check the mtime of each file vs the time the
 cache was created and decide if we need to regenerate the cache.
 
-Usage examples:
+USAGE EXMAPLES:
 
+IN JADE:
     block extra_css
         :compress_css
             normalize.css
@@ -33,6 +37,26 @@ js      : "#{cwd}/js"
 css     : "#{cwd}/css"
 coffee  : "#{cwd}/coffee"
 sass    : "#{cwd}/sass"
+
+IN YOUR APP:
+(example in Coffee)
+    express = require 'express'
+    compress = require 'node-jade-compress'
+    app = express.createServer()
+    app.configure(->
+        app.use express.logger()
+        app.use express.bodyParser()
+        app.use express.cookieParser()
+        app.use express.session {secret : 'scry', store : session_store}
+        app.use app.router
+        app.use express.static "#{cwd}/static"
+    )
+    app.set 'view engine', 'jade'
+    app.set 'view options', {layout: false}
+    compress.views_init app
+
+You supply the views_init function with your express app, which should
+be using Jade as the view engine of course (it's the Express default).
 
 
 PROS:
