@@ -8,8 +8,8 @@ coffee-script, connect, express, jade, mime, uglify-js, sqwish
 
 How does it work?
 
-We add compress_js and compress_css filters to the Jade filter list. You can supply the js filter
-with either .js or .coffee local files, and the css filter with either .css or .scss local files.
+Two filters: compress_js and compress_css are added to the Jade filter list. You can supply the js
+filter with either .js or .coffee local files, and the css filter with either .css or .scss local files.
 When the template is rendered, it simply creates a hash based on the filenames, and points them at
 a /cache directory. Any .js or .css requests to that directory are expected to be hashes, so we then
 look up what file cache is associated with that hash, check the mtime of each file vs the time the
