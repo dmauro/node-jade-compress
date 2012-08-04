@@ -41,6 +41,7 @@ sass    : "#{cwd}/sass"
 IN YOUR APP:
 (example in Coffee)
     express = require 'express'
+    coffee = require 'coffee-script'
     compress = require 'node-jade-compress'
     app = express.createServer()
     app.configure(->

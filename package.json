@@ -20,13 +20,13 @@
     "compressor"
   ],
   "dependencies": {
-    "coffee-script" : 1.3.3,
-    "connect" : 2.3.6,
-    "express" : 2.5.1,
-    "jade" : 0.19.0,
-    "mime" : 1.2.4,
-    "uglify-js" : 1.1.1,
-    "sqwish" : 0.2.0
+    "coffee-script" : "1.3.3",
+    "connect" : "2.3.6",
+    "express" : "2.5.1",
+    "jade" : "0.19.0",
+    "mime" : "1.2.4",
+    "uglify-js" : "1.1.1",
+    "sqwish" : "0.2.0"
   },
   "author": "David Mauro",
   "license": "BSD"
