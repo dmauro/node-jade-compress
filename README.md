@@ -84,3 +84,5 @@ TODOs:
 * Handle someone requesting a cache file while it's being created.
 * Put hashes in a db, allow user to supply a store.
 * Allow user to specify the directories where files are, and where cache is stored.
+* Automatically import the hardcoded 'vars' and 'mixins' into every sass file.
+* Report SASS errors when compiling
