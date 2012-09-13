@@ -1,6 +1,5 @@
 #!/usr/bin/env coffee
 
-jade = require 'jade'
 crypto = require 'crypto'
 fs = require 'fs'
 cp = require 'child_process'
@@ -9,11 +8,13 @@ uglify = require 'uglify-js'
 sqwish = require 'sqwish'
 utils = require('connect').utils
 
+jade = null
 paths = {}
 file_groups = {}
 processing = {}
 
-module.exports.init = (root_dir) ->
+module.exports.init = (root_dir, _jade) ->
+    jade = _jade or require 'jade'
     paths = {
         cache   : {
             js  : "#{root_dir}/js/cache"
