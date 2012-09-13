@@ -5,6 +5,7 @@ An asynchronous Javascript/Coffeescript &amp; CSS/SASS compressor for the Jade t
 
 DEPENDENCIES:
 coffee-script, connect, express, jade, mime, uglify-js, sqwish
+Node must be able to spawn child processes of "coffee" and "sass"
 
 How does it work?
 
