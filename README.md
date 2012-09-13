@@ -33,10 +33,14 @@ IN JADE:
             chat_client.coffee
 
 The filters will look in following directories for the files:
-js      : "#{cwd}/js"
-css     : "#{cwd}/css"
-coffee  : "#{cwd}/coffee"
-sass    : "#{cwd}/sass"
+js      : "#{specified_root_dir}/js"
+css     : "#{specified_root_dir}/css"
+coffee  : "#{specified_root_dir}/coffee"
+sass    : "#{specified_root_dir}/sass"
+
+And will store caches in:
+js      : "#{specified_root_dir}/js/cache"
+css     : "#{specified_root_dir}/css/cache"
 
 IN YOUR APP:
 (example in Coffee)
@@ -50,10 +54,11 @@ IN YOUR APP:
         app.use express.cookieParser()
         app.use express.session {secret : 'scry', store : session_store}
         app.use app.router
-        app.use express.static "#{cwd}/static"
+        app.use express.static "#{__dirname}/static"
     )
     app.set 'view engine', 'jade'
     app.set 'view options', {layout: false}
+    compress.init __dirname
     compress.views_init app
 
 You supply the views_init function with your express app, which should
@@ -83,6 +88,5 @@ TODOs:
 * Add support for non-local files in compress filters.
 * Handle someone requesting a cache file while it's being created.
 * Put hashes in a db, allow user to supply a store.
-* Allow user to specify the directories where files are, and where cache is stored.
-* Automatically import the hardcoded 'vars' and 'mixins' into every sass file.
+* Allow user to specify which @imports are hardcoded.
 * Report SASS errors when compiling

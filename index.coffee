@@ -9,44 +9,45 @@ uglify = require 'uglify-js'
 sqwish = require 'sqwish'
 utils = require('connect').utils
 
-cwd = process.cwd()
-paths = {
-    cache   : {
-        js  : "#{cwd}/js/cache"
-        css : "#{cwd}/css/cache"
-    }
-    file_standard   : {
-        js  : "#{cwd}/js"
-        css : "#{cwd}/css"
-    }
-    file_abstract   : {
-        js  : "#{cwd}/coffee"
-        css : "#{cwd}/sass"
-    }
-    url     : {
-        js  : "/js/cache"
-        css : "/css/cache"
-    }
-}
+paths = {}
 file_groups = {}
 processing = {}
 
-# Either create or clear out cache dirs
-for dir in [paths['cache']['js'], paths['cache']['css']]
-    ((dir) ->
-        fs.stat dir, (err, cache_stat) ->
-            if err and err.code is "ENOENT"
-                fs.mkdir dir, 0o0755, (err) ->
-                    throw err if err
-            else if cache_stat
-                fs.readdir dir, (err, files) ->
-                    if files.length > 0
-                        for file in files
-                            ext = file.split "."
-                            continue unless ext[ext.length - 1] in ["js", "css"]
-                            fs.unlink "#{dir}/#{file}", (err) ->
-                                throw err if err
-    )(dir)
+module.exports.init = (root_dir) ->
+    paths = {
+        cache   : {
+            js  : "#{root_dir}/js/cache"
+            css : "#{root_dir}/css/cache"
+        }
+        file_standard   : {
+            js  : "#{root_dir}/js"
+            css : "#{root_dir}/css"
+        }
+        file_abstract   : {
+            js  : "#{root_dir}/coffee"
+            css : "#{root_dir}/sass"
+        }
+        url     : {
+            js  : "/js/cache"
+            css : "/css/cache"
+        }
+    }
+    # Either create or clear out cache dirs
+    for dir in [paths['cache']['js'], paths['cache']['css']]
+        ((dir) ->
+            fs.stat dir, (err, cache_stat) ->
+                if err and err.code is "ENOENT"
+                    fs.mkdir dir, 0o0755, (err) ->
+                        throw err if err
+                else if cache_stat
+                    fs.readdir dir, (err, files) ->
+                        if files.length > 0
+                            for file in files
+                                ext = file.split "."
+                                continue unless ext[ext.length - 1] in ["js", "css"]
+                                fs.unlink "#{dir}/#{file}", (err) ->
+                                    throw err if err
+        )(dir)
 
 create_hash = (filenames) ->
     md5 = crypto.createHash 'md5'
@@ -282,6 +283,3 @@ module.exports.views_init = (app) ->
         jade.filters.compress_js = (data) ->
             hash = jade_hash data
             return "<script src=\"#{paths['url']['js']}/#{hash}.js\"></script>"
-
-
-
