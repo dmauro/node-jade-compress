@@ -89,5 +89,4 @@ TODOs:
 * Add support for non-local files in compress filters.
 * Handle someone requesting a cache file while it's being created.
 * Put hashes in a db, allow user to supply a store.
-* Allow user to specify which @imports are hardcoded.
-* Report SASS errors when compiling
+* Remove old file hashes

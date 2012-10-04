@@ -13,43 +13,6 @@ paths = {}
 file_groups = {}
 processing = {}
 
-module.exports.init = (root_dir, _jade) ->
-    jade = _jade or require 'jade'
-    paths = {
-        cache   : {
-            js  : "#{root_dir}/js/cache"
-            css : "#{root_dir}/css/cache"
-        }
-        file_standard   : {
-            js  : "#{root_dir}/js"
-            css : "#{root_dir}/css"
-        }
-        file_abstract   : {
-            js  : "#{root_dir}/coffee"
-            css : "#{root_dir}/sass"
-        }
-        url     : {
-            js  : "/js/cache"
-            css : "/css/cache"
-        }
-    }
-    # Either create or clear out cache dirs
-    for dir in [paths['cache']['js'], paths['cache']['css']]
-        ((dir) ->
-            fs.stat dir, (err, cache_stat) ->
-                if err and err.code is "ENOENT"
-                    fs.mkdir dir, 0o0755, (err) ->
-                        throw err if err
-                else if cache_stat
-                    fs.readdir dir, (err, files) ->
-                        if files.length > 0
-                            for file in files
-                                ext = file.split "."
-                                continue unless ext[ext.length - 1] in ["js", "css"]
-                                fs.unlink "#{dir}/#{file}", (err) ->
-                                    throw err if err
-        )(dir)
-
 create_hash = (filenames) ->
     md5 = crypto.createHash 'md5'
     for filename in filenames
@@ -97,6 +60,27 @@ coffee_to_js = (stream, callback, filepath="") ->
         callback spool
     stream.pipe coffee.stdin
 
+sass_to_css = (filepath, callback) ->
+    sass = cp.spawn "sass", [filepath]
+    spool = ""
+    sass.stderr.on 'data', (data) ->
+        error_txt = data.toString 'ascii'
+        # CSS trick to get the error on screen
+        spool += "body:before{content:\"#{error_txt.replace(/"/g, "\\\"")}\";font-size:16px;font-family:monospace;color:#900;}"
+        spool += error_txt
+    sass.stdout.on 'data', (data) ->
+        # Sass puts in newlines, so let's remove those
+        data = data.toString 'ascii'
+        data = data.replace /\r\n|\r+|\n+/, ''
+        spool += data
+    sass.stdout.on 'end', ->
+        sass.kill 'SIGTERM'
+        callback spool
+        
+get_file_extension = (filename) ->
+    a = filename.split "."
+    return a[a.length - 1]
+
 create_then_serve_file = (req, res, filetype, filenames) ->
     hash = create_hash filenames
     processing[hash] = true
@@ -111,7 +95,7 @@ create_then_serve_file = (req, res, filetype, filenames) ->
                 i++
                 callback() if i >= filenames.length
                 
-            extension = file_ext filename
+            extension = get_file_extension filename
             filepath = null
             if extension in ["js", "css"]
                 filepath = "#{paths['file_standard'][filetype]}/#{filename}"
@@ -137,16 +121,10 @@ create_then_serve_file = (req, res, filetype, filenames) ->
             else if filetype is "css"
                 if extension is "css"
                     fs.readFile filepath, 'ascii', (err, data) ->
+                        throw err if err
                         done_parsing data
                 else if extension is "scss"
-                    sass = cp.spawn "sass", [filepath]
-                    sass.stderr.on 'data', (data) ->
-                        throw new Error "SASS: #{data.toString('ascii')}"
-                    sass.stdout.on 'data', (data) ->
-                        sass.kill 'SIGTERM'
-                        # Sass puts in newlines, so let's remove those
-                        data = data.toString 'ascii'
-                        data = data.replace /\r\n|\r+|\n+/, ''
+                    sass_to_css filepath, (data) ->
                         done_parsing data
         )(->
             filepath = "#{paths['cache'][filetype]}/#{hash}.#{filetype}"
@@ -163,13 +141,10 @@ create_then_serve_file = (req, res, filetype, filenames) ->
                 serve_file req, res, filepath, true
         , index)
         
-file_ext = (filename) ->
-    a = filename.split "."
-    return a[a.length - 1]
-        
 send_response = (req, res, filetype) ->
     filenames = file_groups[req.params.hash]
     if not filenames
+        # TODO: Deal with this gracefully
         throw new Error "Problem, hash isn't in memory. This shouldn't happen."
         return
     filepath = "#{paths['cache'][filetype]}/#{req.params.hash}.#{filetype}"
@@ -181,7 +156,7 @@ send_response = (req, res, filetype) ->
             for filename in filenames
                 ((callback) ->
                     return if stop_loop
-                    extension = file_ext filename
+                    extension = get_file_extension filename
                     path = null
                     if extension in ["js", "css"]
                         path = "#{paths['file_standard'][filetype]}/#{filename}"
@@ -211,7 +186,53 @@ send_response = (req, res, filetype) ->
         else
             throw err
 
-module.exports.views_init = (app) ->
+module.exports = (app, root_dir, _jade) ->
+    jade = _jade or require 'jade'
+    paths = {
+        cache   : {
+            js  : "#{root_dir}/js/cache"
+            css : "#{root_dir}/css/cache"
+        }
+        file_standard   : {
+            js  : "#{root_dir}/js"
+            css : "#{root_dir}/css"
+        }
+        file_abstract   : {
+            js  : "#{root_dir}/coffee"
+            css : "#{root_dir}/sass"
+        }
+        url     : {
+            js  : "/js/cache"
+            css : "/css/cache"
+        }
+    }
+    # Make sure required directories exist
+    for name, group of paths
+        continue unless name in ['file_standard', 'file_abstract']
+        for type, dir of group
+            ((dir) ->
+                fs.stat dir, (err, cache_stat) ->
+                    if err and err.code is "ENOENT"
+                        fs.mkdir dir, 0o0755, (err) ->
+                            throw err if err
+            )(dir)
+    # Either create or clear out cache dirs
+    for dir in [paths['cache']['js'], paths['cache']['css']]
+        ((dir) ->
+            fs.stat dir, (err, cache_stat) ->
+                if err and err.code is "ENOENT"
+                    fs.mkdir dir, 0o0755, (err) ->
+                        throw err if err
+                else if cache_stat
+                    fs.readdir dir, (err, files) ->
+                        if files.length > 0
+                            for file in files
+                                ext = file.split "."
+                                continue unless ext[ext.length - 1] in ["js", "css"]
+                                fs.unlink "#{dir}/#{file}", (err) ->
+                                    throw err if err
+        )(dir)
+
     # Jade filter dependencies
     jade_get_filenames = (data) ->
         data = data.replace /\\n+$/, ''
@@ -223,7 +244,7 @@ module.exports.views_init = (app) ->
         hash = create_hash filenames
         # Force check on SASS dependencies
         for filename in filenames
-            extension = file_ext filename
+            extension = get_file_extension filename
             if extension is "scss"
                 # These dependencies are hard-coded.
                 filenames.push "_vars.scss"
