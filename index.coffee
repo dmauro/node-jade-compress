@@ -6,12 +6,20 @@ cp = require 'child_process'
 mime = require 'mime'
 uglify = require 'uglify-js'
 sqwish = require 'sqwish'
+cron = require 'cron'
 utils = require('connect').utils
-
 jade = null
 paths = {}
+
+##########################
+# Hash keyed dictionaries:
+##########################
+# Tracks all filenames in a given hash
 file_groups = {}
+# Used to mark that we are currently compressing a hash
 processing = {}
+# Tracks requests waiting for compressed file to be generated
+requests_waiting_on_compress = {}
 
 create_hash = (filenames) ->
     md5 = crypto.createHash 'md5'
@@ -81,9 +89,11 @@ get_file_extension = (filename) ->
     a = filename.split "."
     return a[a.length - 1]
 
-create_then_serve_file = (req, res, filetype, filenames) ->
-    hash = create_hash filenames
+create_file = (hash) ->
     processing[hash] = true
+    filenames = file_groups[hash]
+    # TODO: Make sure this doesn't happen with db persistence
+    throw "Trying to create file from undeclared hash" unless filenames
     spool = []
     i = 0
     for index in [0...filenames.length]
@@ -91,6 +101,7 @@ create_then_serve_file = (req, res, filetype, filenames) ->
         spool.push index
         ((callback, index) ->
             done_parsing = (data) ->
+                # Ensure we write the data in the order the files were listed
                 spool[index] = data
                 i++
                 callback() if i >= filenames.length
@@ -128,7 +139,6 @@ create_then_serve_file = (req, res, filetype, filenames) ->
                         done_parsing data
         )(->
             filepath = "#{paths['cache'][filetype]}/#{hash}.#{filetype}"
-            # Ensure that we write the data in the order it was listed
             data = ""
             for chunk in spool
                 data += chunk
@@ -137,73 +147,146 @@ create_then_serve_file = (req, res, filetype, filenames) ->
             if filetype is "css"
                 data = sqwish.minify data
             fs.writeFile filepath, data, 'ascii', (err) ->
-                processing[hash] = false
-                serve_file req, res, filepath, true
+                # Serve this file up to anyone else waiting for it
+                delete processing[hash]
+                for request in requests_waiting_on_compress[hash]
+                    serve_file request.req, request.res, filepath, true
+                delete requests_waiting_on_compress[hash]
         , index)
+
+create_then_serve_file = (req, res, filetype, filenames) ->
+    hash = create_hash filenames
+    # Put us in queue to receive file once its been created
+    requests_waiting_on_compress[hash] = [
+        req : req
+        res : res
+    ]
+    create_file hash
+
+cache_is_stale = (cache_mtime, filenames, callback) ->
+    i = filenames.length
+    for filename in filenames
+        extension = get_file_extension filename
+        path = null
+        if extension in ["js", "css"]
+            path = "#{paths['file_standard'][filetype]}/#{filename}"
+        else if extension in ["coffee", "scss"]
+            path = "#{paths['file_abstract'][filetype]}/#{filename}"
+        fs.stat path, (err, stat) ->
+            throw Error err if err
+            i--
+            if +stat.mtime > +cache_mtime
+                callback true
+                break
+            callback false if i is 0
         
 send_response = (req, res, filetype) ->
     filenames = file_groups[req.params.hash]
-    if not filenames
-        # TODO: Deal with this gracefully
-        throw new Error "Problem, hash isn't in memory. This shouldn't happen."
-        return
+    # TODO: Make sure this doesn't happen with db persistence
+    throw "Problem, hash isn't in memory. We must have restarted and someone somehow requested an old hash." unless filenames
     filepath = "#{paths['cache'][filetype]}/#{req.params.hash}.#{filetype}"
     fs.stat filepath, (err, cache_stat) ->
         if not err
-            # Check all of the files to see if any are newer than the cached file
-            i = filenames.length
-            stop_loop = false
-            for filename in filenames
-                ((callback) ->
-                    return if stop_loop
-                    extension = get_file_extension filename
-                    path = null
-                    if extension in ["js", "css"]
-                        path = "#{paths['file_standard'][filetype]}/#{filename}"
-                    else if extension in ["coffee", "scss"]
-                        path = "#{paths['file_abstract'][filetype]}/#{filename}"
-                    fs.stat path, (err, stat) ->
-                        throw Error err if err
-                        i--
-                        if +stat.mtime > +cache_stat.mtime
-                            stop_loop = true
-                            callback true
-                            return
-                        callback false if i is 0
-                ) (cache_is_stale) ->
-                    if cache_is_stale
-                        create_then_serve_file req, res, filetype, filenames
-                    else if !cache_is_stale
-                        serve_file req, res, filepath
-                    
+            cache_is_stale cache_state.mtime, filenames, (is_stale) ->
+                if is_stale
+                    create_then_serve_file req, res, filetype, filenames
+                else
+                    serve_file req, res, filepath
         else if err.code is "ENOENT"
             # This file has not been generated yet
+            # Put us in the queue to receive when ready
             if processing[req.params.hash]
-                # TODO: If the file is already being made we need to figure
-                #       out how to wait for it to finish being created.
-                return
-            create_then_serve_file req, res, filetype, filenames
+                requests_waiting_on_compress[req.params.hash].push(
+                    req : req
+                    res : res
+                )
+            else
+                create_then_serve_file req, res, filetype, filenames
         else
             throw err
 
-module.exports = (app, root_dir, _jade, sass_imports=[]) ->
+regen_stale_caches = ->
+    # Called by cron so that your users don't have to wait
+    for own hash, filenames of file_groups
+        ((hash, filenames) ->
+            # Guess filetype of hash from filenames
+            if filenames[0] in ["css", "scss"]
+                filetype = "css"
+            else
+                filetype = "js"
+            filepath = "#{paths['cache'][filetype]}/#{hash}.#{filetype}"
+            fs.stat filepath, (err, cache_stat) ->
+                if err
+                    if err.code is "ENOENT"
+                        throw "Hash does not have file and is not processing during regen cron" unless processing[hash]
+                    else
+                        throw err
+                cache_is_stale cache_state.mtime, filenames, (is_stale) ->
+                    create_file hash if is_stale
+        )(hash, filenames)
+
+cron_last_checked = 0
+clear_old_caches = ->
+    # If a hash hasn't been accessed since this was last called, we'll clear it
+    i = 0
+    for own hash, filenames of file_groups
+        i++
+        ((hash, filenames) ->
+            # Guess filetype of hash from filenames
+            if filenames[0] in ["css", "scss"]
+                filetype = "css"
+            else
+                filetype = "js"
+            filepath = "#{paths['cache'][filetype]}/#{hash}.#{filetype}"
+            fs.stat filepath, (err, cache_stat) ->
+                i--
+                if err
+                    if err.code is "ENOENT"
+                        throw "Hash does not have file and is not processing during cleanup cron" unless processing[hash]
+                    else
+                        throw err
+                unless +cache_stat.atime > +cron_last_checked
+                    # Delete the file and hash
+                    fs.unlink filepath, (err) ->
+                        throw err if err
+                    delete file_groups[hash]
+                cron_last_checked = new Date() if i is 0
+        )(hash, filenames)
+
+module.exports = (settings) ->
+    # You must pass in the app
+    app = settings.app
+    # Everything else is optional
+    root_dir = settings.root_dir or process.cwd
+    js_dir = settings.js_dir or "js"
+    coffee_dir = settings.coffee_dir or "coffee"
+    css_dir = settings.js_dir or "css"
+    sass_dir = settings.sass_dir or "sass"
+    cache_dir = settings.cache_dir or "cache"
+    js_url = settings.js_url or "/js/cache"
+    css_url = settings.css_url or "/js/cache"
+    jade = settings.jade or require 'jade'
+    sass_imports = settings.sass_imports or []
+    cleanup_cron = settings.cleanup_cron or '00 00 01 * * *'
+    regen_cron = settings.regen_cron or '00 01 * * * *'
     jade = _jade or require 'jade'
+
     paths = {
         cache   : {
-            js  : "#{root_dir}/js/cache"
-            css : "#{root_dir}/css/cache"
+            js  : "#{root_dir}/#{js_dir}/#{cache_dir}"
+            css : "#{root_dir}/#{css_dir}/#{cache_dir}"
         }
         file_standard   : {
-            js  : "#{root_dir}/js"
-            css : "#{root_dir}/css"
+            js  : "#{root_dir}/#{js_dir}"
+            css : "#{root_dir}/#{css_dir}"
         }
         file_abstract   : {
-            js  : "#{root_dir}/coffee"
-            css : "#{root_dir}/sass"
+            js  : "#{root_dir}/#{coffee_dir}"
+            css : "#{root_dir}/#{sass_dir}"
         }
         url     : {
-            js  : "/js/cache"
-            css : "/css/cache"
+            js  : js_url
+            css : css_url
         }
     }
     # Make sure required directories exist
@@ -304,3 +387,17 @@ module.exports = (app, root_dir, _jade, sass_imports=[]) ->
         jade.filters.compress_js = (data) ->
             hash = jade_hash data
             return "<script src=\"#{paths['url']['js']}/#{hash}.js\"></script>"
+
+    # Set up crons for cleanup and regen
+    new cron.CronJob(
+        cronTime    : regen_cron
+        onTick      : ->
+            regen_stale_caches()
+        start       : true
+    )
+    new cron.CronJob(
+        cronTime    : cleanup_cron
+        onTick      : ->
+            clear_old_caches()
+        start       : true
+    )
