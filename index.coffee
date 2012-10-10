@@ -186,7 +186,7 @@ send_response = (req, res, filetype) ->
         else
             throw err
 
-module.exports = (app, root_dir, _jade) ->
+module.exports = (app, root_dir, _jade, sass_imports=[]) ->
     jade = _jade or require 'jade'
     paths = {
         cache   : {
@@ -246,9 +246,8 @@ module.exports = (app, root_dir, _jade) ->
         for filename in filenames
             extension = get_file_extension filename
             if extension is "scss"
-                # These dependencies are hard-coded.
-                filenames.push "_vars.scss"
-                filenames.push "_mixins.scss"
+                for import in sass_imports
+                    filenames.push import
                 break
         file_groups[hash] = filenames
         return hash
