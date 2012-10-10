@@ -92,8 +92,6 @@ get_file_extension = (filename) ->
 create_file = (hash) ->
     processing[hash] = true
     filenames = file_groups[hash]
-    # TODO: Make sure this doesn't happen with db persistence
-    throw "Trying to create file from undeclared hash" unless filenames
     spool = []
     i = 0
     for index in [0...filenames.length]
@@ -182,8 +180,8 @@ cache_is_stale = (cache_mtime, filenames, callback) ->
         
 send_response = (req, res, filetype) ->
     filenames = file_groups[req.params.hash]
-    # TODO: Make sure this doesn't happen with db persistence
-    throw "Problem, hash isn't in memory. We must have restarted and someone somehow requested an old hash." unless filenames
+    unless filenames
+        return res.send 500, "Problem finding cached files"
     filepath = "#{paths['cache'][filetype]}/#{req.params.hash}.#{filetype}"
     fs.stat filepath, (err, cache_stat) ->
         if not err
@@ -253,10 +251,11 @@ clear_old_caches = ->
                 cron_last_checked = new Date() if i is 0
         )(hash, filenames)
 
-module.exports = (settings) ->
+module.exports = (settings, callback) ->
     # You must pass in the app
     app = settings.app
     # Everything else is optional
+    file_groups = settings.file_groups or {}
     root_dir = settings.root_dir or process.cwd
     js_dir = settings.js_dir or "js"
     coffee_dir = settings.coffee_dir or "coffee"
@@ -401,3 +400,7 @@ module.exports = (settings) ->
             clear_old_caches()
         start       : true
     )
+
+    if typeof callback is "function"
+        # Send back file_groups so we can store it
+        callback file_groups

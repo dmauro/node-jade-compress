@@ -75,17 +75,9 @@ PROS:
   give back the individual files for better debugging.
 
 CONS:
-* When the cache is invalidated, a new one won't be generated until a user visits, so the response
-  time for that user to receive the .js/.css file will be much slower.
-
 * I haven't tested this in a proper production environment. It could probably use a lot of help.
 
-* We have to hardcode any includes we want to use in any of the SASS files. In the intereste of speed
-  we can't look at every file, so "vars" and "mixins" have been hardcoded for now.
-
-
 TODOs:
-* Put hashes in a db, allow user to supply a store.
 * Cleanup this readme and pakage.json
 * Module testing
 * Add support for non-local files in compress filters, maybe?
