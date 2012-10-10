@@ -321,12 +321,16 @@ module.exports = (settings, callback) ->
         filenames = data.split /\\n+/
         return filenames
     
-    jade_hash = (data) ->
+    jade_hash = (data, filetype) ->
         filenames = jade_get_filenames data
         hash = create_hash filenames
         # Force check on SASS dependencies
         for filename in filenames
             extension = get_file_extension filename
+            if filetype is "js" and extension not in ["js", "coffee"]
+                throw "Compress JS can only include .js or .coffee files"
+            if filetype is "css" and extension not in ["css", "scss"]
+                throw "Compress CSS can only include .css or .scss files"
             if extension is "scss"
                 for import in sass_imports
                     filenames.push import
@@ -335,7 +339,7 @@ module.exports = (settings, callback) ->
         return hash
 
     jade.filters.compress_css = (data) ->
-        hash = jade_hash data
+        hash = jade_hash data, "css"
         return "<link rel=\"stylesheet\" href=\"#{paths['url']['css']}/#{hash}.css\">"
 
     send_with_js_headers = (res, data) ->
@@ -376,6 +380,9 @@ module.exports = (settings, callback) ->
             filenames = jade_get_filenames data
             scripts = ""
             for file in filenames
+                extension = get_file_extension file
+                unless extension in ["js", "coffee"]
+                    throw "Compress JS can only include .js or .coffee files"
                 scripts += "<script src=\"/js/#{file}\"></script>"
             return scripts
 
@@ -384,7 +391,7 @@ module.exports = (settings, callback) ->
             send_response req, res, "js"
 
         jade.filters.compress_js = (data) ->
-            hash = jade_hash data
+            hash = jade_hash data, "js"
             return "<script src=\"#{paths['url']['js']}/#{hash}.js\"></script>"
 
     # Set up crons for cleanup and regen

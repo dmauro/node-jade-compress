@@ -81,4 +81,3 @@ TODOs:
 * Cleanup this readme and pakage.json
 * Module testing
 * Add support for non-local files in compress filters, maybe?
-* Error on wrong file types for filter
