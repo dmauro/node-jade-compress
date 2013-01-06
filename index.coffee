@@ -24,6 +24,8 @@ create_hash = (filenames) ->
     md5 = crypto.createHash 'md5'
     for filename in filenames
         md5.update filename
+    hash = md5.digest 'hex'
+    return hash
     return md5.digest 'hex'
 
 serve_file = (req, res, filepath, is_fresh = false) ->
@@ -88,7 +90,7 @@ get_file_extension = (filename) ->
     a = filename.split "."
     return a[a.length - 1]
 
-create_file = (hash) ->
+create_file = (hash, filetype) ->
     processing[hash] = true
     filenames = file_groups[hash]
     spool = []
@@ -158,7 +160,7 @@ create_then_serve_file = (req, res, filetype, filenames) ->
         req : req
         res : res
     ]
-    create_file hash
+    create_file hash, filetype
 
 cache_is_stale = (cache_mtime, filenames, callback) ->
     i = filenames.length
@@ -222,7 +224,7 @@ regen_stale_caches = ->
                     else
                         throw err
                 cache_is_stale cache_state.mtime, filenames, (is_stale) ->
-                    create_file hash if is_stale
+                    create_file hash, filetype if is_stale
         )(hash, filenames)
 
 cron_last_checked = 0
@@ -265,7 +267,7 @@ module.exports = (settings, callback) ->
     sass_dir = settings.sass_dir or "sass"
     cache_dir = settings.cache_dir or "cache"
     js_url = settings.js_url or "/js/cache"
-    css_url = settings.css_url or "/js/cache"
+    css_url = settings.css_url or "/css/cache"
     jade = settings.jade or require 'jade'
     sass_imports = settings.sass_imports or []
     cleanup_cron = settings.cleanup_cron or '00 00 01 * * *'
@@ -324,7 +326,6 @@ module.exports = (settings, callback) ->
     
     jade_hash = (data, filetype) ->
         filenames = jade_get_filenames data
-        hash = create_hash filenames
         # Force check on SASS dependencies
         for filename in filenames
             extension = get_file_extension filename
@@ -334,8 +335,12 @@ module.exports = (settings, callback) ->
                 throw new Error "Compress CSS can only include .css or .scss files"
             if extension is "scss"
                 for import_filename in sass_imports
-                    filenames.push import_filename
+                    import_extension = get_file_extension import_filename
+                    if import_extension not in ["scss", "sass"]
+                        import_filename += ".scss"
+                    filenames.unshift import_filename
                 break
+        hash = create_hash filenames
         file_groups[hash] = filenames
         return hash
 
