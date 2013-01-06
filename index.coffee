@@ -8,7 +8,6 @@ uglify = require 'uglify-js'
 sqwish = require 'sqwish'
 cron = require 'cron'
 utils = require('connect').utils
-jade = null
 paths = {}
 
 ##########################
@@ -166,17 +165,20 @@ cache_is_stale = (cache_mtime, filenames, callback) ->
     for filename in filenames
         extension = get_file_extension filename
         path = null
-        if extension in ["js", "css"]
-            path = "#{paths['file_standard'][filetype]}/#{filename}"
-        else if extension in ["coffee", "scss"]
-            path = "#{paths['file_abstract'][filetype]}/#{filename}"
-        fs.stat path, (err, stat) ->
-            throw Error err if err
-            i--
-            if +stat.mtime > +cache_mtime
-                callback true
-                break
-            callback false if i is 0
+        if filename.subtr(0, 4) is "http"
+            # TODO: non-local files over http
+        else
+            # For local files
+            if extension in ["js", "css"]
+                path = "#{paths['file_standard'][filetype]}/#{filename}"
+            else if extension in ["coffee", "scss"]
+                path = "#{paths['file_abstract'][filetype]}/#{filename}"
+            fs.stat path, (err, stat) ->
+                throw Error err if err
+                i--
+                if +stat.mtime > +cache_mtime
+                    callback true
+                callback false if i is 0
         
 send_response = (req, res, filetype) ->
     filenames = file_groups[req.params.hash]
@@ -216,7 +218,7 @@ regen_stale_caches = ->
             fs.stat filepath, (err, cache_stat) ->
                 if err
                     if err.code is "ENOENT"
-                        throw "Hash does not have file and is not processing during regen cron" unless processing[hash]
+                        throw new Error "Hash does not have file and is not processing during regen cron" unless processing[hash]
                     else
                         throw err
                 cache_is_stale cache_state.mtime, filenames, (is_stale) ->
@@ -240,7 +242,7 @@ clear_old_caches = ->
                 i--
                 if err
                     if err.code is "ENOENT"
-                        throw "Hash does not have file and is not processing during cleanup cron" unless processing[hash]
+                        throw new Error "Hash does not have file and is not processing during cleanup cron" unless processing[hash]
                     else
                         throw err
                 unless +cache_stat.atime > +cron_last_checked
@@ -268,7 +270,6 @@ module.exports = (settings, callback) ->
     sass_imports = settings.sass_imports or []
     cleanup_cron = settings.cleanup_cron or '00 00 01 * * *'
     regen_cron = settings.regen_cron or '00 01 * * * *'
-    jade = _jade or require 'jade'
 
     paths = {
         cache   : {
@@ -328,12 +329,12 @@ module.exports = (settings, callback) ->
         for filename in filenames
             extension = get_file_extension filename
             if filetype is "js" and extension not in ["js", "coffee"]
-                throw "Compress JS can only include .js or .coffee files"
+                throw new Error "Compress JS can only include .js or .coffee files"
             if filetype is "css" and extension not in ["css", "scss"]
-                throw "Compress CSS can only include .css or .scss files"
+                throw new Error "Compress CSS can only include .css or .scss files"
             if extension is "scss"
-                for import in sass_imports
-                    filenames.push import
+                for import_filename in sass_imports
+                    filenames.push import_filename
                 break
         file_groups[hash] = filenames
         return hash
@@ -382,7 +383,7 @@ module.exports = (settings, callback) ->
             for file in filenames
                 extension = get_file_extension file
                 unless extension in ["js", "coffee"]
-                    throw "Compress JS can only include .js or .coffee files"
+                    throw new Error "Compress JS can only include .js or .coffee files"
                 scripts += "<script src=\"/js/#{file}\"></script>"
             return scripts
 
