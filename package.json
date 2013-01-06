@@ -1,6 +1,6 @@
 {
   "name": "node-jade-compress",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "An asynchronous Javascript/Coffeescript & CSS/SASS compressor for the Jade templating engine.",
   "main": "index.coffee",
   "scripts": {
