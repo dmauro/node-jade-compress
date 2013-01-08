@@ -48,19 +48,9 @@ css     : "#{specified_root_dir}/css/cache"
 ### In your app: ###
 ```CoffeeScript
     express = require 'express'
-    coffee = require 'coffee-script'
     compress = require 'node-jade-compress'
     app = express.createServer()
-    app.configure(->
-        app.use express.logger()
-        app.use express.bodyParser()
-        app.use express.cookieParser()
-        app.use express.session {secret : 'scry', store : session_store}
-        app.use app.router
-        app.use express.static "#{__dirname}/static"
-    )
     app.set 'view engine', 'jade'
-    app.set 'view options', {layout: false}
     compress({app : app})
 ```
 When calling node-jade-compress, you must supply it with a settings object.

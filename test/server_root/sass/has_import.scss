@@ -1,0 +1,6 @@
+@import "mixins";
+
+body {
+    @include fullsize();
+    color:white;
+}

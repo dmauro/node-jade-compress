@@ -29,6 +29,11 @@
     "uglify-js" : "1.1.1",
     "sqwish" : "0.2.0"
   },
+  "devDependencies": {
+    "mocha": "1.7.x",
+    "should": "1.2.x",
+    "zombie": "2.x.x"
+  },
   "author": "David Mauro",
   "license": "BSD"
 }
