@@ -388,8 +388,8 @@ module.exports.init = (settings, callback) ->
     css_url = settings.css_url or "/css"
     js_cache_url = settings.js_cache_url or "#{js_url}/cache"
     css_cache_url = settings.css_cache_url or "#{css_url}/cache"
-    cleanup_cron = settings.cleanup_cron or '00 00 01 * * *' # Runs once a day
-    regen_cron = settings.regen_cron or '00 01 * * * *' # Runs once an hour
+    regen_cron = settings.regen_cron or '*/10 * * * * *'
+    cleanup_cron = settings.cleanup_cron or '00 00 00 * * 0'
     # Cron Syntax
     # Second(0-59) Minute(0-59) Hour(0-23) DayMonth(1-31) Month(1-12) DayWeek(0-6/Sunday-Saturday)
 
