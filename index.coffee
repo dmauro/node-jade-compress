@@ -7,10 +7,11 @@ mime = require 'mime'
 uglify = require 'uglify-js'
 sqwish = require 'sqwish'
 cron = require 'cron'
+jade = require 'jade'
 utils = require('connect').utils
 coffeescript = require 'coffee-script'
 sass = require 'node-sass'
-use_sass_cli = true
+use_sass_cli = false
 paths = {}
 test_helper = {
     files_generated : 0
@@ -77,7 +78,7 @@ coffee_to_js = (stream, callback, filepath="") ->
         callback spool unless is_enoent
     stream.pipe coffee.stdin
 
-sass_to_css = (filepath, callback) ->
+sass_to_css = (filepath, callback, imports_found_callback) ->
     if use_sass_cli
         # We probably won't need this
         spool = ""
@@ -114,6 +115,23 @@ sass_to_css = (filepath, callback) ->
             scss_spool += data.toString 'ascii'
         stream.on 'end', ->
             return if is_enoent
+            # Check if we have any imports, so that they can be added to File groups
+            if imports_found_callback?
+                import_filenames = []
+                import_regex = /@import[^;]*;/gm
+                line_regex = /[^"']+(?=(["'],( )?["'])|["'];$)/g
+                import_lines = scss_spool.match(import_regex) or []
+                import_lines.reverse()
+                for line in import_lines
+                    imports = line.match(line_regex) or []
+                    imports.reverse()
+                    for imp in imports
+                        extension = get_file_extension imp
+                        if extension not in ["scss", "sass"]
+                            imp += ".scss"
+                            import_filenames.unshift imp
+                imports_found_callback import_filenames
+
             # Render to CSS
             sass.render scss_spool, (err, css) ->
                 if err
@@ -190,6 +208,11 @@ create_file = (hash, filetype, res) ->
                         unless data?
                             return file_not_found()
                         done_parsing data
+                    , (import_filenames) ->
+                        # Sass @import is found callback
+                        for import_filename in import_filenames
+                            if import_filename not in file_groups[hash]
+                                file_groups[hash].push import_filename
         )(->
             filepath = "#{paths['cache'][filetype]}/#{hash}.#{filetype}"
             data = ""
@@ -347,8 +370,6 @@ module.exports.init = (settings, callback) ->
     css_url = settings.css_url or "/css"
     js_cache_url = settings.js_cache_url or "#{js_url}/cache"
     css_cache_url = settings.css_cache_url or "#{css_url}/cache"
-    jade = settings.jade or require 'jade'
-    sass_imports = settings.sass_imports or []
     cleanup_cron = settings.cleanup_cron or '00 00 01 * * *' # Runs once a day
     regen_cron = settings.regen_cron or '00 01 * * * *' # Runs once an hour
     # Cron Syntax
@@ -414,9 +435,10 @@ module.exports.init = (settings, callback) ->
             if filetype is "js" and extension not in ["js", "coffee"]
                 # Compress JS can only include .js or .coffee files
                 return null
-            if filetype is "css" and extension not in ["css", "scss"]
+            else if filetype is "css" and extension not in ["css", "scss"]
                 # Compress CSS can only include .css or .scss files
                 return null
+            ###
             if extension is "scss"
                 for import_filename in sass_imports
                     import_extension = get_file_extension import_filename
@@ -424,6 +446,7 @@ module.exports.init = (settings, callback) ->
                         import_filename += ".scss"
                     filenames.unshift import_filename
                 break
+            ###
         hash = create_hash filenames
         file_groups[hash] = filenames
         return hash
