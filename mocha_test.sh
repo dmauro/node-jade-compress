@@ -1,3 +1,6 @@
 #!/bin/bash
 cd "$( cd "$( dirname "$0" )" && pwd )"
-NODE_ENV=test mocha test/production.coffee
+echo "Production Environment Tests"
+NODE_ENV=production mocha test/production.coffee
+echo "Dev Environment Tests"
+NODE_ENV=development mocha test/development.coffee

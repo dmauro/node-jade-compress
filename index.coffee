@@ -67,7 +67,7 @@ coffee_to_js = (stream, callback, filepath="") ->
         if error_txt.indexOf("ENOENT") > -1
             is_enoent = true
             return callback null
-        else if process.env.ENV_VARIABLE is "development"
+        else if process.env.NODE_ENV is "development"
             spool += new Buffer 'alert(\'COFFEE ERROR: ' + error_txt.split("\n")[0] + ' - FILEPATH: ' + filepath + '\');', 'ascii'
         failure = true
     coffee.stdout.on 'data', (data) ->
@@ -85,7 +85,7 @@ sass_to_css = (filepath, callback) ->
         if error_txt.indexOf("ENOENT") > -1
             is_enoent = true
             return callback null
-        else if process.env.ENV_VARIABLE is "development"
+        else if process.env.NODE_ENV is "development"
             # CSS trick to get the error on screen
             spool += "body:before{content:\"#{error_txt.replace(/"/g, "\\\"")}\";font-size:16px;font-family:monospace;color:#900;}"
             spool += error_txt
@@ -241,7 +241,6 @@ send_response = (req, res, filetype) ->
             throw err
 
 test_helper.regen_cron = regen_stale_caches = ->
-    console.log "regen", file_groups
     # Called by cron so that your users don't have to wait
     for own hash, filenames of file_groups
         continue unless filenames
@@ -459,15 +458,13 @@ module.exports.init = (settings, callback) ->
         sass_to_css filepath, (data) ->
             send_with_css_headers res, data
 
-    app.configure "development", ->
+    if process.env.NODE_ENV is "development"
         # Don't compress CoffeeScript in development, only convert to JS
         jade.filters.compress_js = (data) ->
             filenames = jade_get_filenames data
             scripts = ""
             for file in filenames
                 extension = get_file_extension file
-                unless extension in ["js", "coffee"]
-                    throw new Error "Compress JS can only include .js or .coffee files"
                 scripts += "<script src=\"/js/#{file}\"></script>"
             return scripts
 

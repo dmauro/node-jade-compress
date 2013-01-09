@@ -1,4 +1,5 @@
 fs = require 'fs'
+cp = require 'child_process'
 should = require 'should'
 assert = require 'assert'
 compress = require '../index'
@@ -57,6 +58,28 @@ before (done) ->
 
 after (done) ->
     cleanup done
+
+describe "Requirements", ->
+    it "can spawn coffeescript process", (done) ->
+        failed = false
+        c = cp.spawn "coffee", ["--version"]
+        c.stderr.on 'data', (data) ->
+            failed = true
+        c.stdout.on 'end', ->
+            setTimeout ->
+                return done new Error "CoffeeScript not available from command line" if failed
+                done()
+            , 100
+    it "can spawn sass process", (done) ->
+        failed = false
+        c = cp.spawn "sass", ["--version"]
+        c.stderr.on 'data', (data) ->
+            failed = true
+        c.stdout.on 'end', ->
+            setTimeout ->
+                return done new Error "Sass not available from command line" if failed
+                done()
+            , 100
 
 describe "Setup", ->
     describe "directories", ->
@@ -126,6 +149,8 @@ describe "Coffee compression", ->
         browser.visit("#{url}#{cache_url}").then(->
             script = browser.text "body"
             script.length.should.not.equal 0
+            newline_count = script.split("\n").length
+            assert.ok newline_count < 2
             return
         ).then done, done
     it "can convert coffee mixed with js files into a single bunch of mangled js", (done) ->
