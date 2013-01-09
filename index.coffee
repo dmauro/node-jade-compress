@@ -8,6 +8,9 @@ uglify = require 'uglify-js'
 sqwish = require 'sqwish'
 cron = require 'cron'
 utils = require('connect').utils
+coffeescript = require 'coffee-script'
+sass = require 'node-sass'
+use_sass_cli = true
 paths = {}
 test_helper = {
     files_generated : 0
@@ -27,8 +30,6 @@ create_hash = (filenames) ->
     md5 = crypto.createHash 'md5'
     for filename in filenames
         md5.update filename
-    hash = md5.digest 'hex'
-    return hash
     return md5.digest 'hex'
 
 serve_file = (req, res, filepath, is_fresh = false) ->
@@ -77,26 +78,53 @@ coffee_to_js = (stream, callback, filepath="") ->
     stream.pipe coffee.stdin
 
 sass_to_css = (filepath, callback) ->
-    spool = ""
-    is_enoent = false
-    sass = cp.spawn "sass", [filepath]
-    sass.stderr.on 'data', (data) ->
-        error_txt = data.toString 'ascii'
-        if error_txt.indexOf("ENOENT") > -1
-            is_enoent = true
-            return callback null
-        else if process.env.NODE_ENV is "development"
-            # CSS trick to get the error on screen
-            spool += "body:before{content:\"#{error_txt.replace(/"/g, "\\\"")}\";font-size:16px;font-family:monospace;color:#900;}"
-            spool += error_txt
-    sass.stdout.on 'data', (data) ->
-        # Sass puts in newlines, so let's remove those
-        data = data.toString 'ascii'
-        data = data.replace /\r\n|\r+|\n+/, ''
-        spool += data
-    sass.stdout.on 'end', ->
-        sass.kill 'SIGTERM'
-        callback spool unless is_enoent
+    if use_sass_cli
+        # We probably won't need this
+        spool = ""
+        is_enoent = false
+        sass = cp.spawn "sass", [filepath]
+        sass.stderr.on 'data', (data) ->
+            error_txt = data.toString 'ascii'
+            if error_txt.indexOf("ENOENT") > -1
+                is_enoent = true
+                return callback null
+            else if process.env.NODE_ENV is "development"
+                # CSS trick to get the error on screen
+                spool += "body:before{content:\"SASS ERROR: #{error_txt.replace(/"/g, "\\\"")}\";font-size:16px;font-family:monospace;color:#900;}"
+                spool += error_txt
+        sass.stdout.on 'data', (data) ->
+            # Sass puts in newlines, so let's remove those
+            data = data.toString 'ascii'
+            data = data.replace /\r\n|\r+|\n+/, ''
+            spool += data
+        sass.stdout.on 'end', ->
+            sass.kill 'SIGTERM'
+            callback spool unless is_enoent
+    else
+        # Use node-sass plugin
+        scss_spool = ""
+        is_enoent = false
+        stream = fs.createReadStream filepath
+        stream.pause()
+        stream.on 'error', (data) ->
+            if data.toString('ascii').indexOf('ENOENT') > -1
+                is_enoent = true
+                return callback null
+        stream.on 'data', (data) ->
+            scss_spool += data.toString 'ascii'
+        stream.on 'end', ->
+            return if is_enoent
+            # Render to CSS
+            sass.render scss_spool, (err, css) ->
+                if err
+                    if process.env.NODE_ENV is "development"
+                        return callback "body:before{content:\"#{err.replace(/"/g, "\\\"")}\";font-size:16px;font-family:monospace;color:#900;}"
+                    else
+                        return callback ""
+                else
+                    return callback css
+        stream.resume()
+
         
 get_file_extension = (filename) ->
     a = filename.split "."

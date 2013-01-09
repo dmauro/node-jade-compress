@@ -119,7 +119,7 @@ describe "Failures", ->
         cache_url = matches[1]
         browser.visit("#{url}#{cache_url}").then(->
             style = browser.text "body"
-            style.indexOf("Syntax error").should.not.equal -1
+            style.indexOf("ERROR").should.not.equal -1
             return
         ).then done, done
 

@@ -86,3 +86,4 @@ CONS:
 TODOs:
 * Module testing
 * Add support for non-local files in compress filters, maybe? (use HEAD request)
+* When we create a hash, we should check for imports and add them to the filenames automatically

@@ -437,7 +437,6 @@ describe "Requests", ->
         ).then done, done
     it "will recognize if a cached file is stale and regenerate it", (done) ->
         setTimeout(->
-            now = new Date().getTime()
             fs.utimes "#{root_dir}/sass/valid.scss", new Date(), new Date(), ->
                 compiler = jade.compile("""
                     :compress_css
@@ -453,8 +452,29 @@ describe "Requests", ->
                 setTimeout(->
                     browser.visit("#{url}#{cache_url}").then(->
                         compress.test_helper.files_generated.should.equal count + 1
-                        done()
-                    )
+                        return
+                    ).then done, done
+                , 1000)
+        , 1000)
+    it "will recognize if a cached css file is stale if imported file gets touched", (done) ->
+        setTimeout(->
+            fs.utimes "#{root_dir}/sass/mixins.scss", new Date(), new Date(), ->
+                compiler = jade.compile("""
+                    :compress_css
+                        has_import.scss
+                """)
+                html = compiler()
+                regex = /href="([^"]*)"/
+                matches = regex.exec html
+                should.exist matches
+                return done() unless matches.length
+                cache_url = matches[1]
+                count = compress.test_helper.files_generated
+                setTimeout(->
+                    browser.visit("#{url}#{cache_url}").then(->
+                        compress.test_helper.files_generated.should.equal count + 1
+                        return
+                    ).then done, done
                 , 1000)
         , 1000)
 
