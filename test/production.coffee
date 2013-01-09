@@ -312,6 +312,22 @@ describe "Sass compression", ->
             style.length.should.equal 0
             return
         ).then done, done
+    it "will serve up an empty file if any imported files don't exist", (done) ->
+        compiler = jade.compile("""
+            :compress_css
+                invalid_imports.scss
+        """)
+        html = compiler()
+        regex = /href="([^"]*)"/
+        matches = regex.exec html
+        should.exist matches
+        return done() unless matches.length
+        cache_url = matches[1]
+        browser.visit("#{url}#{cache_url}").then(->
+            style = browser.text "body"
+            style.length.should.equal 0
+            return
+        ).then done, done
     it "will serve 404 if any sass files don't exist", (done) ->
         compiler = jade.compile("""
             :compress_css
@@ -388,7 +404,7 @@ describe "Requests", ->
             style.length.should.not.equal 0
             return
         ).then done, done
-    it "can serve up a cached file to two different end points even if it doesn't exist yet", (done) ->
+    it "can serve up a cached file to simultaneous requests even if it doesn't exist yet", (done) ->
         second_browser = new Zombie()
         # We have to have no yet generated this in our tests
         compiler = jade.compile("""
@@ -513,3 +529,5 @@ describe "Cron", ->
             # Just watching to see if server throws out an error
             done()
         , 500)
+
+# TODO: Test that we can restart the server by saving file_groups to db

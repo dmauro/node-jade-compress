@@ -1,0 +1,7 @@
+@import "mixins";
+@import 'vars', '404';
+
+body {
+    @include fullsize();
+    color:white;
+}

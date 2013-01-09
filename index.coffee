@@ -11,7 +11,7 @@ jade = require 'jade'
 utils = require('connect').utils
 coffeescript = require 'coffee-script'
 sass = require 'node-sass'
-use_sass_cli = false
+use_sass_cli = true
 paths = {}
 test_helper = {
     files_generated : 0
@@ -79,11 +79,40 @@ coffee_to_js = (stream, callback, filepath="") ->
     stream.pipe coffee.stdin
 
 sass_to_css = (filepath, callback, imports_found_callback) ->
+    find_imports = (scss_spool) ->
+        import_filenames = []
+        import_regex = /@import[^;]*;/gm
+        line_regex = /[^"']+(?=(["'],( )?["'])|["'];$)/g
+        import_lines = scss_spool.match(import_regex) or []
+        import_lines.reverse()
+        for line in import_lines
+            imports = line.match(line_regex) or []
+            imports.reverse()
+            for imp in imports
+                extension = get_file_extension imp
+                if extension not in ["scss", "sass"]
+                    imp += ".scss"
+                    import_filenames.unshift imp
+        imports_found_callback import_filenames
+
     if use_sass_cli
         # We probably won't need this
         spool = ""
         is_enoent = false
         sass = cp.spawn "sass", [filepath]
+        if imports_found_callback?
+            scss_spool = ""
+            import_is_enoent = false
+            stream = fs.createReadStream filepath
+            stream.pause()
+            stream.on 'error', (data) ->
+                import_is_enoent = true
+            stream.on 'data', (data) ->
+                scss_spool += data.toString 'ascii'
+            stream.on 'end', ->
+                return if import_is_enoent
+                find_imports scss_spool
+            stream.resume()
         sass.stderr.on 'data', (data) ->
             error_txt = data.toString 'ascii'
             if error_txt.indexOf("ENOENT") > -1
@@ -117,20 +146,7 @@ sass_to_css = (filepath, callback, imports_found_callback) ->
             return if is_enoent
             # Check if we have any imports, so that they can be added to File groups
             if imports_found_callback?
-                import_filenames = []
-                import_regex = /@import[^;]*;/gm
-                line_regex = /[^"']+(?=(["'],( )?["'])|["'];$)/g
-                import_lines = scss_spool.match(import_regex) or []
-                import_lines.reverse()
-                for line in import_lines
-                    imports = line.match(line_regex) or []
-                    imports.reverse()
-                    for imp in imports
-                        extension = get_file_extension imp
-                        if extension not in ["scss", "sass"]
-                            imp += ".scss"
-                            import_filenames.unshift imp
-                imports_found_callback import_filenames
+                find_imports scss_spool
 
             # Render to CSS
             sass.render scss_spool, (err, css) ->
@@ -160,6 +176,8 @@ create_file = (hash, filetype, res) ->
             file_not_found = ->
                 if requests_waiting_on_compress[hash]
                     delete requests_waiting_on_compress[hash]
+                # If this hash is invalid due to 404, we should clear it
+                delete file_groups[hash] if file_groups[hash]?
                 return res.send 404 if res
 
             done_parsing = (data) ->
@@ -232,8 +250,7 @@ create_file = (hash, filetype, res) ->
                 test_helper.files_generated += 1
         , index, res, filename, filenames.length)
 
-create_then_serve_file = (req, res, filetype, filenames) ->
-    hash = create_hash filenames
+create_then_serve_file = (req, res, hash, filetype, filenames) ->
     # Put us in queue to receive file once its been created
     requests_waiting_on_compress[hash] = [
         req : req
@@ -260,22 +277,23 @@ cache_is_stale = (cache_mtime, filenames, callback) ->
             else if extension is "scss"
                 path = "#{paths['file_abstract']['css']}/#{filename}"
             fs.stat path, (err, stat) ->
-                throw Error err if err
                 i--
-                if +stat.mtime > +cache_mtime
-                    callback true unless is_done
-                    is_done = true
+                unless err
+                    if +stat.mtime > +cache_mtime
+                        callback true unless is_done
+                        is_done = true
                 callback false if i is 0 and !is_done
         
 send_response = (req, res, filetype) ->
-    filenames = file_groups[req.params.hash]
+    hash = req.params.hash
+    filenames = file_groups[hash]
     return res.send 404 unless filenames
     filepath = "#{paths['cache'][filetype]}/#{req.params.hash}.#{filetype}"
     fs.stat filepath, (err, cache_stat) ->
         if not err
             cache_is_stale cache_stat.mtime, filenames, (is_stale) ->
                 if is_stale
-                    create_then_serve_file req, res, filetype, filenames
+                    create_then_serve_file req, res, hash, filetype, filenames
                 else
                     serve_file req, res, filepath
         else if err.code is "ENOENT"
@@ -287,7 +305,7 @@ send_response = (req, res, filetype) ->
                     res : res
                 )
             else
-                create_then_serve_file req, res, filetype, filenames
+                create_then_serve_file req, res, hash, filetype, filenames
         else
             throw err
 
@@ -448,7 +466,7 @@ module.exports.init = (settings, callback) ->
                 break
             ###
         hash = create_hash filenames
-        file_groups[hash] = filenames
+        file_groups[hash] = filenames unless file_groups[hash]?
         return hash
 
     jade.filters.compress_css = (data) ->
