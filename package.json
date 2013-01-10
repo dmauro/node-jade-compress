@@ -1,7 +1,7 @@
 {
   "name": "node-jade-compress",
   "version": "0.0.7",
-  "description": "An asynchronous Javascript/Coffeescript & CSS/SASS compressor for the Jade templating engine.",
+  "description": "An asynchronous JS/CSS compressor with CoffeeScript and Sass support.",
   "main": "index.coffee",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

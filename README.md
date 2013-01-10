@@ -36,18 +36,16 @@ How do I use it?
 
 ### In your Jade template: ###
 ```jade
-    block extra_css
-        :compress_css
-            foo.css
-            bar.scss
-            baz.css
-            qux.scss
+    :compress_css
+        foo.css
+        bar.scss
+        baz.css
+        qux.scss
 
-    block extra_javascript
-        :compress_js
-            foo.coffee
-            bar.js
-            baz.coffee
+    :compress_js
+        foo.coffee
+        bar.js
+        baz.coffee
 ```
 
 ### In your app: ###
@@ -73,29 +71,37 @@ optional settings:
     cache_dir       # Defaults to "cache"
     js_url          # Defaults to "/js"
     css_url         # Defaults to "/css"
-    js_cache_url    # Defaults to #{js_url}/cache
-    css_cache_url   # Defaults to #{css_url}/cache
-    regen_cron      # Defaults to '*/10 * * * * *' every ten minutes
+    js_cache_url    # Defaults to "#{js_url}/cache"
+    css_cache_url   # Defaults to "#{css_url}/cache"
+    regen_cron      # Defaults to '*/10 * * * * *' or every ten minutes
     cleanup_cron    # Defaults to '00 00 00 * * 0' or once per week
 
 ### Directories ###
-The filters will look in following directories for the files by default:  
-js      : "#{root_dir}/#{js_dir}"  
-css     : "#{root_dir}/#{css_dir}"  
-coffee  : "#{root_dir}/#{coffee_dir}"  
-sass    : "#{root_dir}/#{sass_dir}"  
+The filters will look in following directories for the files by default:
+```
+js      : "#{root_dir}/#{js_dir}"
+css     : "#{root_dir}/#{css_dir}"
+coffee  : "#{root_dir}/#{coffee_dir}"
+sass    : "#{root_dir}/#{sass_dir}"
+```
 
-And will store caches in:  
-js      : "#{root_dir}/#{js_dir}/#{cache_dir}"  
-css     : "#{root_dir}/#{css_dir}/#{cache_dir}"  
+And will store caches in:
+```
+js      : "#{root_dir}/#{js_dir}/#{cache_dir}"
+css     : "#{root_dir}/#{css_dir}/#{cache_dir}"
+```
 
-Cached file requests will point towards:  
-js      : "#{js_cache_url}"  
-css     : "#{css_cache_url}"  
+Cached file requests will point towards:
+```
+js      : "#{js_cache_url}"
+css     : "#{css_cache_url}"
+```
 
-And you can automatically convert coffeescript and and sass files on the fly by visiting:  
+And you can automatically convert coffeescript and and sass files on the fly by visiting:
+```
 coffee  : "#{js_url}"
 sass    : "#{css_url}"
+```
 (You should only use this for aiding in development, don't point users to these urls as they
 are set to expire instantly and won't be cached properly)
 
@@ -117,11 +123,9 @@ Pros and Cons
 -------------
 
 PROS:
-* This is asynchronous. It will not generate a cache while rendering the template, but will wait
-for the cron job to run or for a user to request the cached file and then generate it asynchronously.
+* This is asynchronous. It will not generate a cache while rendering the template, but will wait for the cron job to run or for a user to request the cached file and then generate it asynchronously.
 * You can combine .js &amp; .coffee files and .css &amp; .scss in a single compress_js or compress_css filter.
-* In a dev environment, this will not minify and compress the Javascript, but will run coffee for
-you and give back the individual files for better debugging.
+* In a dev environment, this will not minify and compress the Javascript, but will run coffee for you and give back the individual files for better debugging.
 
 CONS:
 * I haven't actually tried this out under heavy load.
