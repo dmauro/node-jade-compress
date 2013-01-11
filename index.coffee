@@ -482,16 +482,7 @@ module.exports.init = (settings, callback) ->
     jade.filters.compress_js_async = (data) ->
         hash = jade_hash data, "js"
         return "" unless hash
-        return """
-            <script>
-                var d = document,
-                s = d.createElement('script'),
-                h = d.getElementsByTagName('head')[0];
-                s.async = true;
-                s.src = "#{paths['url']['js']}/#{hash}.js";
-                h.appendChild(s);
-            </script>
-        """
+        return "<script>var d = document,s = d.createElement('script'),h = d.getElementsByTagName('head')[0];s.setAttribute('async', true);s.src = \"#{paths['url']['js']}/#{hash}.js\";h.appendChild(s);</script>"
 
     # These are mostly just to help looking at your files
     # you should not send your users to these:
@@ -553,19 +544,10 @@ module.exports.init = (settings, callback) ->
 
         jade.filters.compress_js_async = (data) ->
             filenames = jade_get_filenames data
-            script = """
-                <script>
-                    var d = document,
-                    h = d.getElementsByTagName('head')[0];
-            """
+            script = "<script>var d=document,h=d.getElementsByTagName('head')[0];"
             for i in [0...filenames.length]
                 filename = filenames[i]
-                script += """
-                    var s_#{i} = d.createElement('script');
-                    s_#{i}.async = true;
-                    s_#{i}.src = "#{js_url}/#{file}";
-                    h.appendChild(s);
-                """
+                script += "var s_#{i}=d.createElement('script');s_#{i}.setAttribute('async',true);s_#{i}.src=\"#{js_url}/#{file}\";h.appendChild(s);"
             script += "</script>"
             return script
 

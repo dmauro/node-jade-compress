@@ -16,6 +16,11 @@ url = "http://#{ip}:#{port}"
 root_dir = "#{cwd}/test/server_root"
 
 app = express.createServer()
+app.set "views", "#{root_dir}/views"
+app.set "view engine", "jade"
+app.set "view options", {layout: false}
+app.get "/js_async", (req, res) ->
+    res.render "js_async"
 app.listen port, ip
 
 cleanup_dirs = ["#{root_dir}/js/cache", "#{root_dir}/css/cache"]
@@ -110,6 +115,7 @@ describe "Setup", ->
     describe "jade filters", ->
         it "should create the jade filters", ->
             should.exist jade.filters.compress_js
+            should.exist jade.filters.compress_js_async
             should.exist jade.filters.compress_css
         describe "js filter", ->
             it "should return a script tag if valid", ->
@@ -118,6 +124,15 @@ describe "Setup", ->
                 tag.substr(-11, 11).should.equal "\"></script>"
             it "should return an empty string if invalid", ->
                 empty = jade.filters.compress_js "foo.bar"
+                empty.should.equal ""
+
+        describe "js async filter", ->
+            it "should return a script tag if valid", ->
+                tag = jade.filters.compress_js_async "foo.coffee\nbar.js"
+                tag.substr(0, 8).should.equal "<script>"
+                tag.substr(-9, 9).should.equal "</script>"
+            it "should return an empty string if invalid", ->
+                empty = jade.filters.compress_js_async "foo.bar"
                 empty.should.equal ""
 
         describe "css filter", ->
@@ -234,13 +249,27 @@ describe "Coffee compression", ->
         delete file_groups[hash]
         url_regex = /"([^"]*)"/
         matches = url_regex.exec html
-        throw new Error "URL Regex fail" unless matches.length
+        throw new Error "URL Regex fail" unless matches and matches.length
         cache_url = matches[1]
         browser.visit("#{url}#{cache_url}").then(->
             done new Error "Should have 404'd"
         ).fail((err) ->
             browser.statusCode.should.equal 404
             done()
+        )
+    it "will properly load javascript asynchronously with compress_js_async filter", (done) ->
+        browser.visit("#{url}/js_async").then(->
+            regex = /<script async="true" src="([^"]*)/gm
+            matches = regex.exec browser.html()
+            throw new Error "URL Regex fail" unless matches and matches.length
+            js_url = matches[1]
+            browser.visit("#{js_url}").then(->
+                script = browser.text "body"
+                script.length.should.not.equal 0
+                return
+            ).then done, done
+        ).fail((err) ->
+            done err
         )
 
 describe "Sass compression", ->
@@ -503,12 +532,14 @@ describe "Cron", ->
 
     it "find cache files that are stale and regenerate them", (done) ->
         regenerated = compress.test_helper.cron.regenerated
-        fs.utimes "#{root_dir}/sass/another.scss", new Date(), new Date(), ->
-            compress.test_helper.regen_cron()
-            setTimeout(->
-                compress.test_helper.cron.regenerated.should.equal regenerated + 1
-                done()
-            , 500) # Give the cron time to run because it has no callback
+        setTimeout(->
+            fs.utimes "#{root_dir}/sass/another.scss", new Date(), new Date(), ->
+                compress.test_helper.regen_cron()
+                setTimeout(->
+                    compress.test_helper.cron.regenerated.should.equal regenerated + 1
+                    done()
+                , 500) # Give the cron time to run because it has no callback
+        , 1000)
 
     it "find cache files that are old and delete them", (done) ->
         removed = compress.test_helper.cron.removed
