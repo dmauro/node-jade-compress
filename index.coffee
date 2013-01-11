@@ -264,25 +264,21 @@ cache_is_stale = (cache_mtime, filenames, callback) ->
     for filename in filenames
         extension = get_file_extension filename
         path = null
-        if filename.substr(0, 4) is "http"
-            # TODO: non-local files over http
-        else
-            # For local files
-            if extension is "js"
-                path = "#{paths['file_standard']['js']}/#{filename}"
-            else if extension is "css"
-                path = "#{paths['file_standard']['css']}/#{filename}"
-            else if extension is "coffee"
-                path = "#{paths['file_abstract']['js']}/#{filename}"
-            else if extension is "scss"
-                path = "#{paths['file_abstract']['css']}/#{filename}"
-            fs.stat path, (err, stat) ->
-                i--
-                unless err
-                    if +stat.mtime > +cache_mtime
-                        callback true unless is_done
-                        is_done = true
-                callback false if i is 0 and !is_done
+        if extension is "js"
+            path = "#{paths['file_standard']['js']}/#{filename}"
+        else if extension is "css"
+            path = "#{paths['file_standard']['css']}/#{filename}"
+        else if extension is "coffee"
+            path = "#{paths['file_abstract']['js']}/#{filename}"
+        else if extension is "scss"
+            path = "#{paths['file_abstract']['css']}/#{filename}"
+        fs.stat path, (err, stat) ->
+            i--
+            unless err
+                if +stat.mtime > +cache_mtime
+                    callback true unless is_done
+                    is_done = true
+            callback false if i is 0 and !is_done
         
 send_response = (req, res, filetype) ->
     hash = req.params.hash
@@ -413,7 +409,7 @@ module.exports.init = (settings, callback) ->
     }
     # Make sure required directories exist
     for name, group of paths
-        continue unless name in ['file_standard', 'file_abstract']
+        continue if name in ['url']
         for type, dir of group
             ((dir) ->
                 fs.stat dir, (err, cache_stat) ->
@@ -421,23 +417,6 @@ module.exports.init = (settings, callback) ->
                         fs.mkdir dir, 0o0755, (err) ->
                             throw err if err
             )(dir)
-    # Either create or clear out cache dirs
-    # TODO: Don't clear them out, the cron takes care of that now
-    for dir in [paths['cache']['js'], paths['cache']['css']]
-        ((dir) ->
-            fs.stat dir, (err, cache_stat) ->
-                if err and err.code is "ENOENT"
-                    fs.mkdir dir, 0o0755, (err) ->
-                        throw err if err
-                else if cache_stat
-                    fs.readdir dir, (err, files) ->
-                        if files.length > 0
-                            for file in files
-                                ext = file.split "."
-                                continue unless ext[ext.length - 1] in ["js", "css"]
-                                fs.unlink "#{dir}/#{file}", (err) ->
-                                    throw err if err
-        )(dir)
 
     # Jade filter dependencies
     jade_get_filenames = (data) ->
@@ -456,15 +435,6 @@ module.exports.init = (settings, callback) ->
             else if filetype is "css" and extension not in ["css", "scss"]
                 # Compress CSS can only include .css or .scss files
                 return null
-            ###
-            if extension is "scss"
-                for import_filename in sass_imports
-                    import_extension = get_file_extension import_filename
-                    if import_extension not in ["scss", "sass"]
-                        import_filename += ".scss"
-                    filenames.unshift import_filename
-                break
-            ###
         hash = create_hash filenames
         file_groups[hash] = filenames unless file_groups[hash]?
         return hash
