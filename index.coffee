@@ -542,6 +542,7 @@ module.exports.init = (settings, callback) ->
                 scripts += "<script src=\"#{js_url}/#{file}\"></script>"
             return scripts
 
+        ### This won't work unless we control the order they are executed in
         jade.filters.compress_js_async = (data) ->
             filenames = jade_get_filenames data
             script = "<script>var d=document,h=d.getElementsByTagName('head')[0];"
@@ -550,6 +551,7 @@ module.exports.init = (settings, callback) ->
                 script += "var s_#{i}=d.createElement('script');s_#{i}.setAttribute('async',true);s_#{i}.src=\"#{js_url}/#{file}\";h.appendChild(s);"
             script += "</script>"
             return script
+        ###
 
     # Set up crons for cleanup and regen
     test_helper.cron = {}
