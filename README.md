@@ -3,7 +3,7 @@ node-jade-compress
 ### An asynchronous JS/CSS compressor with CoffeeScript and Sass support ###
 
 Node-jade-compress provides you with jade template filters that allow you to easily
-concatenate and minify your scripts and styles without an extra build step, and with
+concatenate, minify/uglify your scripts and styles without an extra build step, and with
 support for CoffeeScript and Sass.
 
 NOTE: This currently requires sass to be installed to work. I'm waiting on a bugfix in the node-sass
@@ -44,13 +44,9 @@ How do I use it?
     :compress_js
         foo.coffee
         bar/baz.js
-
-    :compress_js_async
-        lib/jquery.js
-        qux.coffee
 ```
-(The compress_js_async filter works like the compress_js filter, but will load
-the script asynchronously by dynamically adding the script to the document.)
+(There is also a :compress_js_async filter which will load all of your scripts asynchronously and in
+the correct order. If you use this in development though, it will concat and uglify all of your JS.)
 
 ### In your app: ###
 ```CoffeeScript
