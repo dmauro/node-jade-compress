@@ -39,14 +39,18 @@ How do I use it?
     :compress_css
         foo.css
         bar.scss
-        baz.css
-        qux.scss
+        baz/qux.css
 
     :compress_js
         foo.coffee
-        bar.js
-        baz.coffee
+        bar/baz.js
+
+    :compress_js_async
+        lib/jquery.js
+        qux.coffee
 ```
+(The compress_js_async filter works like the compress_js filter, but will load
+the script asynchronously by dynamically adding the script to the document.)
 
 ### In your app: ###
 ```CoffeeScript

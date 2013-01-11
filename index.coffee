@@ -479,6 +479,20 @@ module.exports.init = (settings, callback) ->
         return "" unless hash
         return "<script src=\"#{paths['url']['js']}/#{hash}.js\"></script>"
 
+    jade.filters.compress_js_async = (data) ->
+        hash = jade_hash data, "js"
+        return "" unless hash
+        return """
+            <script>
+                var d = document,
+                s = d.createElement('script'),
+                h = d.getElementsByTagName('head')[0];
+                s.async = true;
+                s.src = "#{paths['url']['js']}/#{hash}.js";
+                h.appendChild(s);
+            </script>
+        """
+
     # These are mostly just to help looking at your files
     # you should not send your users to these:
     send_with_instant_expiry = (res, data) ->
@@ -534,8 +548,26 @@ module.exports.init = (settings, callback) ->
             scripts = ""
             for file in filenames
                 extension = get_file_extension file
-                scripts += "<script src=\"/js/#{file}\"></script>"
+                scripts += "<script src=\"#{js_url}/#{file}\"></script>"
             return scripts
+
+        jade.filters.compress_js_async = (data) ->
+            filenames = jade_get_filenames data
+            script = """
+                <script>
+                    var d = document,
+                    h = d.getElementsByTagName('head')[0];
+            """
+            for i in [0...filenames.length]
+                filename = filenames[i]
+                script += """
+                    var s_#{i} = d.createElement('script');
+                    s_#{i}.async = true;
+                    s_#{i}.src = "#{js_url}/#{file}";
+                    h.appendChild(s);
+                """
+            script += "</script>"
+            return script
 
     # Set up crons for cleanup and regen
     test_helper.cron = {}
