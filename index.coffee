@@ -92,7 +92,8 @@ sass_to_css = (filepath, callback, imports_found_callback) ->
                 extension = get_file_extension imp
                 if extension not in ["scss", "sass"]
                     imp += ".scss"
-                    import_filenames.unshift imp
+                    # TODO: Do this properly
+                    # import_filenames.unshift imp
         imports_found_callback import_filenames
 
     if use_sass_cli
@@ -462,11 +463,11 @@ module.exports.init = (settings, callback) ->
         res.setHeader 'Last-Modified', new Date().toUTCString()
         res.send data
 
-    send_with_js_headers = (res, data) ->
+    send_with_instant_expiry_js_headers = (res, data) ->
         res.setHeader 'Content-Type', "text/javascript;charset=UTF-8"
         send_with_instant_expiry res, data
 
-    send_with_css_headers = (res, data) ->
+    send_with_instant_expiry_css_headers = (res, data) ->
         res.setHeader 'Content-Type', "text/css;charset=UTF-8"
         send_with_instant_expiry res, data
         
@@ -480,8 +481,13 @@ module.exports.init = (settings, callback) ->
         filepath = "#{paths['file_abstract']['js']}/#{req.params[0]}.coffee"
         stream = fs.createReadStream filepath
         stream.pause()
+        is_enoent = false
+        stream.on 'error', (err) ->
+            is_enoent = true
+            res.send 404
         coffee_to_js stream, (data) ->
-            send_with_js_headers res, data
+            return if is_enoent
+            send_with_instant_expiry_js_headers res, data
         , filepath
         stream.resume()
 
@@ -490,17 +496,22 @@ module.exports.init = (settings, callback) ->
         stream = fs.createReadStream filepath
         stream.pause()
         js_spool = ""
+        is_enoent = false
+        stream.on 'error', (data) ->
+            is_enoent = true
+            res.send 404
         stream.on 'data', (data) ->
             js_spool += data.toString 'ascii'
         stream.on 'end', ->
-            send_with_js_headers res, js_spool
+            return if is_enoent
+            send_with_instant_expiry_js_headers res, js_spool
         stream.resume()
-        send_response req, res, "css"
+        send_response req, res, "js"
 
     app.get "#{css_url}/*.scss", (req, res) ->
         filepath = "#{paths['file_abstract']['css']}/#{req.params[0]}.scss"
         sass_to_css filepath, (data) ->
-            send_with_css_headers res, data
+            send_with_instant_expiry_css_headers res, data
 
     if process.env.NODE_ENV is "development"
         # Don't compress CoffeeScript in development, only convert to JS

@@ -158,8 +158,7 @@ describe "Coffee compression", ->
         html = compiler()
         regex = /"([^"]*)"/
         matches = regex.exec html
-        should.exist matches
-        return done() unless matches.length
+        throw new Error "Regex fail" unless matches and matches.length
         cache_url = matches[1]
         browser.visit("#{url}#{cache_url}").then(->
             script = browser.text "body"
@@ -177,8 +176,7 @@ describe "Coffee compression", ->
         html = compiler()
         regex = /"([^"]*)"/
         matches = regex.exec html
-        should.exist matches
-        return done() unless matches.length
+        throw new Error "Regex fail" unless matches and matches.length
         cache_url = matches[1]
         browser.visit("#{url}#{cache_url}").then(->
             script = browser.text "body"
@@ -193,8 +191,7 @@ describe "Coffee compression", ->
         html = compiler()
         regex = /"([^"]*)"/
         matches = regex.exec html
-        should.exist matches
-        return done() unless matches.length
+        throw new Error "Regex fail" unless matches and matches.length
         cache_url = matches[1]
         browser.visit("#{url}#{cache_url}").then(->
             script = browser.text "body"
@@ -209,8 +206,7 @@ describe "Coffee compression", ->
         html = compiler()
         regex = /"([^"]*)"/
         matches = regex.exec html
-        should.exist matches
-        return done() unless matches.length
+        throw new Error "Regex fail" unless matches and matches.length
         cache_url = matches[1]
         browser.visit("#{url}#{cache_url}").then(->
             done new Error "Should have 404'd"
@@ -226,8 +222,7 @@ describe "Coffee compression", ->
         html = compiler()
         regex = /"([^"]*)"/
         matches = regex.exec html
-        should.exist matches
-        return done() unless matches.length
+        throw new Error "Regex fail" unless matches and matches.length
         cache_url = matches[1]
         browser.visit("#{url}#{cache_url}").then(->
             done new Error "Should have 404'd"
@@ -271,6 +266,20 @@ describe "Coffee compression", ->
         ).fail((err) ->
             done err
         )
+    it "will serve 404 when requesting a single coffee file that doesn't exist", (done) ->
+        browser.visit("#{url}/js/foobar.coffee").then(->
+            throw new Error "Should have 404'd"
+        ).fail((err) ->
+            browser.statusCode.should.equal 404
+            done()
+        )
+    it "will serve 404 when requesting a single js file that doesn't exist", (done) ->
+        browser.visit("#{url}/js/foobar.js").then(->
+            throw new Error "Should have 404'd"
+        ).fail((err) ->
+            browser.statusCode.should.equal 404
+            done()
+        )
 
 describe "Sass compression", ->
     browser = new Zombie()
@@ -284,8 +293,7 @@ describe "Sass compression", ->
         html = compiler()
         regex = /href="([^"]*)"/
         matches = regex.exec html
-        should.exist matches
-        return done() unless matches.length
+        throw new Error "Regex fail" unless matches and matches.length
         cache_url = matches[1]
         browser.visit("#{url}#{cache_url}").then(->
             style = browser.text "body"
@@ -301,8 +309,7 @@ describe "Sass compression", ->
         html = compiler()
         regex = /href="([^"]*)"/
         matches = regex.exec html
-        should.exist matches
-        return done() unless matches.length
+        throw new Error "Regex fail" unless matches and matches.length
         cache_url = matches[1]
         browser.visit("#{url}#{cache_url}").then(->
             style = browser.text "body"
@@ -317,8 +324,7 @@ describe "Sass compression", ->
         html = compiler()
         regex = /href="([^"]*)"/
         matches = regex.exec html
-        should.exist matches
-        return done() unless matches.length
+        throw new Error "Regex fail" unless matches and matches.length
         cache_url = matches[1]
         browser.visit("#{url}#{cache_url}").then(->
             style = browser.text "body"
@@ -333,8 +339,7 @@ describe "Sass compression", ->
         html = compiler()
         regex = /href="([^"]*)"/
         matches = regex.exec html
-        should.exist matches
-        return done() unless matches.length
+        throw new Error "Regex fail" unless matches and matches.length
         cache_url = matches[1]
         browser.visit("#{url}#{cache_url}").then(->
             style = browser.text "body"
@@ -349,8 +354,7 @@ describe "Sass compression", ->
         html = compiler()
         regex = /href="([^"]*)"/
         matches = regex.exec html
-        should.exist matches
-        return done() unless matches.length
+        throw new Error "Regex fail" unless matches and matches.length
         cache_url = matches[1]
         browser.visit("#{url}#{cache_url}").then(->
             style = browser.text "body"
@@ -365,8 +369,7 @@ describe "Sass compression", ->
         html = compiler()
         regex = /href="([^"]*)"/
         matches = regex.exec html
-        should.exist matches
-        return done() unless matches.length
+        throw new Error "Regex fail" unless matches and matches.length
         cache_url = matches[1]
         browser.visit("#{url}#{cache_url}").then(->
             done new Error "Should have 404'd"
@@ -382,8 +385,7 @@ describe "Sass compression", ->
         html = compiler()
         regex = /href="([^"]*)"/
         matches = regex.exec html
-        should.exist matches
-        return done() unless matches.length
+        throw new Error "Regex fail" unless matches and matches.length
         cache_url = matches[1]
         browser.visit("#{url}#{cache_url}").then(->
             done new Error "Should have 404'd"
@@ -443,8 +445,7 @@ describe "Requests", ->
         html = compiler()
         regex = /href="([^"]*)"/
         matches = regex.exec html
-        should.exist matches
-        return done() unless matches.length
+        throw new Error "Regex fail" unless matches and matches.length
         cache_url = matches[1]
         count = 2
         finalize = (err) ->
@@ -471,8 +472,7 @@ describe "Requests", ->
         html = compiler()
         regex = /href="([^"]*)"/
         matches = regex.exec html
-        should.exist matches
-        return done() unless matches.length
+        throw new Error "Regex fail" unless matches and matches.length
         cache_url = matches[1]
         before = new Date().getTime()
         browser.visit("#{url}#{cache_url}").then(->
@@ -522,6 +522,35 @@ describe "Requests", ->
                     ).then done, done
                 , 1000)
         , 1000)
+    it "will 304 on a request that hasn't changed for a js cache file", (done) ->
+        compiler = jade.compile("""
+            :compress_js
+                valid.coffee
+                another.coffee
+        """)
+        html = compiler()
+        regex = /"([^"]*)"/
+        matches = regex.exec html
+        throw new Error "Regex fail" unless matches and matches.length
+        cache_url = matches[1]
+        browser.visit("#{url}#{cache_url}", { headers: {'if-modified-since': new Date()}}).then(->
+            browser.statusCode.should.equal 304
+            return
+        ).then done, done
+    it "will 304 on a request that hasn't changed for a css cache file", (done) ->
+        compiler = jade.compile("""
+            :compress_css
+                valid.scss
+        """)
+        html = compiler()
+        regex = /href="([^"]*)"/
+        matches = regex.exec html
+        throw new Error "Regex fail" unless matches and matches.length
+        cache_url = matches[1]
+        browser.visit("#{url}#{cache_url}", { headers: {'if-modified-since': new Date()}}).then(->
+            browser.statusCode.should.equal 304
+            return
+        ).then done, done
 
 describe "Cron", ->
     before (done) ->

@@ -79,7 +79,7 @@ describe "Coffee", ->
         regex = /"([^"]*)"/
         matches = regex.exec html
         should.exist matches
-        return done() unless matches.length
+        throw new Error "Regex fail" unless matches and matches.length
         cache_url = matches[1]
         browser.visit("#{url}#{cache_url}").then(->
             script = browser.text "body"
@@ -97,8 +97,7 @@ describe "Failures", ->
         html = compiler()
         regex = /"([^"]*)"/
         matches = regex.exec html
-        should.exist matches
-        return done() unless matches.length
+        throw new Error "Regex fail" unless matches and matches.length
         cache_url = matches[1]
         browser.visit("#{url}#{cache_url}").then(->
             script = browser.text "body"
@@ -114,8 +113,7 @@ describe "Failures", ->
         html = compiler()
         regex = /href="([^"]*)"/
         matches = regex.exec html
-        should.exist matches
-        return done() unless matches.length
+        throw new Error "Regex fail" unless matches and matches.length
         cache_url = matches[1]
         browser.visit("#{url}#{cache_url}").then(->
             style = browser.text "body"
