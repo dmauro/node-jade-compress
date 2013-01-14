@@ -78,9 +78,6 @@ coffee_to_js = (stream, callback, filepath="") ->
     stream.pipe coffee.stdin
 
 add_sass_imports_to_filegroup = (sass_data, filepath, callback) ->
-    return callback []
-    # TODO: All filenames need full paths for this to work
-
     current_dir = filepath.split("/").slice(0, -1).join("/") + "/"
     import_filenames = []
     import_regex = /@import[^;]*;/gm
@@ -111,7 +108,7 @@ add_sass_imports_to_filegroup = (sass_data, filepath, callback) ->
                     count = count or 0
                     if count >= look_for.length
                         # None of the filepaths found the import
-                        decr()
+                        return decr()
                     filepath = look_for[count]
                     fs.stat filepath, (err, stat) ->
                         count += 1
