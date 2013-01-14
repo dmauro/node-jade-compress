@@ -408,6 +408,7 @@ module.exports.test_helper = test_helper
 module.exports.init = (settings, callback) ->
     # You must pass in the app
     app = settings.app
+    jade = settings.jade or require 'jade'
     # Everything else is optional
     file_groups = settings.file_groups or {}
     root_dir = settings.root_dir or process.cwd
