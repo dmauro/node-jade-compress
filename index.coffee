@@ -220,15 +220,10 @@ create_file = (hash, filetype, res) ->
                 callback() if i >= max
                 
             extension = get_file_extension filename
-            filepath = null
-            if extension in ["js", "css"]
-                filepath = "#{paths['file_standard'][filetype]}/#{filename}"
-            else if extension in ["coffee", "scss"]
-                filepath = "#{paths['file_abstract'][filetype]}/#{filename}"
                 
             # Deal with COFFEE and JS files
             if filetype is "js"
-                stream = fs.createReadStream filepath
+                stream = fs.createReadStream filename
                 stream.pause()
                 stream.on 'error', (data) ->
                     if data.toString('ascii').indexOf('ENOENT') > -1
@@ -249,13 +244,13 @@ create_file = (hash, filetype, res) ->
             # Deal with SCSS and CSS files
             else if filetype is "css"
                 if extension is "css"
-                    fs.readFile filepath, 'ascii', (err, data) ->
+                    fs.readFile filename, 'ascii', (err, data) ->
                         if err and err.code is "ENOENT"
                             return file_not_found()
                         throw err if err
                         done_parsing data
                 else if extension is "scss"
-                    sass_to_css filepath, (data) ->
+                    sass_to_css filename, (data) ->
                         unless data?
                             return file_not_found()
                         done_parsing data
@@ -296,16 +291,7 @@ cache_is_stale = (cache_mtime, filenames, callback) ->
     is_done = false
     for filename in filenames
         extension = get_file_extension filename
-        path = null
-        if extension is "js"
-            path = "#{paths['file_standard']['js']}/#{filename}"
-        else if extension is "css"
-            path = "#{paths['file_standard']['css']}/#{filename}"
-        else if extension is "coffee"
-            path = "#{paths['file_abstract']['js']}/#{filename}"
-        else if extension is "scss"
-            path = "#{paths['file_abstract']['css']}/#{filename}"
-        fs.stat path, (err, stat) ->
+        fs.stat filename, (err, stat) ->
             i--
             unless err
                 if +stat.mtime > +cache_mtime
@@ -454,13 +440,30 @@ module.exports.init = (settings, callback) ->
             )(dir)
 
     # Jade filter dependencies
+    jade_get_filepaths = (data) ->
+        filenames = jade_get_filenames data
+        for i in [0...filenames.length]
+            extension = get_file_extension filenames[i]
+            if extension is "js"
+                dir = paths['file_standard']['js']
+            else if extension is "coffee"
+                dir = paths['file_abstract']['js']
+            else if extension is "css"
+                dir = paths['file_standard']['css']
+            else if extension is "scss"
+                dir = paths['file_abstract']['css']
+            else
+                continue
+            filenames[i] = "#{dir}/#{filenames[i]}"
+        return filenames
+
     jade_get_filenames = (data) ->
         data = data.replace /\\n+$/, ''
         filenames = data.split /\\n+/
         return filenames
     
     jade_hash = (data, filetype) ->
-        filenames = jade_get_filenames data
+        filenames = jade_get_filepaths data
         # Force check on SASS dependencies
         for filename in filenames
             extension = get_file_extension filename
@@ -559,7 +562,7 @@ module.exports.init = (settings, callback) ->
 
         ### This won't work unless we control the order they are executed in
         jade.filters.compress_js_async = (data) ->
-            filenames = jade_get_filenames data
+            filenames = jade_get_filepaths data
             script = "<script>var d=document,h=d.getElementsByTagName('head')[0];"
             for i in [0...filenames.length]
                 filename = filenames[i]
@@ -584,7 +587,6 @@ module.exports.init = (settings, callback) ->
             clear_old_caches()
         start       : true
     )
-
     if typeof callback is "function"
         # Send back file_groups so we can store it
         callback file_groups
