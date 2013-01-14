@@ -25,7 +25,6 @@
     "connect" : "2.3.2",
     "cron": "1.0.x",
     "express" : "2.5.1",
-    "jade" : "0.19.0",
     "mime" : "1.2.4",
     "uglify-js" : "1.1.1",
     "sqwish" : "0.2.0"

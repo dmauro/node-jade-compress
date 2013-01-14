@@ -1,5 +1,4 @@
 #!/usr/bin/env coffee
-
 crypto = require 'crypto'
 fs = require 'fs'
 cp = require 'child_process'
@@ -7,7 +6,6 @@ mime = require 'mime'
 uglify = require 'uglify-js'
 sqwish = require 'sqwish'
 cron = require 'cron'
-jade = require 'jade'
 utils = require('connect').utils
 coffeescript = require 'coffee-script'
 sass = require 'node-sass'
@@ -115,7 +113,6 @@ add_sass_imports_to_filegroup = (sass_data, filepath, callback) ->
                         # None of the filepaths found the import
                         decr()
                     filepath = look_for[count]
-                    console.log "STATING", filepath
                     fs.stat filepath, (err, stat) ->
                         count += 1
                         if stat

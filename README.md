@@ -56,15 +56,14 @@ worked out a little better.)
     compress = require 'node-jade-compress'
     app = express.createServer()
     app.set 'view engine', 'jade'
-    compress.init({app : app, jade : require 'jade'})
+    compress.init({app : app, jade})
 ```
 
 Optional Settings
 -----------------
 When calling node-jade-compress, you must supply it with a settings object.
-It needs at least to have a reference to your Express server, and you should probably also
-supply it with a reference to jade to ensure it adds the custom filters to the same instance of
-jade that you will be using as your rendering engine. You can also have any of these optional settings:
+It needs at least to have a reference to your Express server, and you can also
+use any of these optional settings:
 
     root_dir        # Defaults to process.cwd()
     js_dir          # Defaults to "js"  
