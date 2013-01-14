@@ -16,6 +16,7 @@ paths = {}
 test_helper = {
     files_generated : 0
 }
+sass_load_paths = []
 
 ##########################
 # Hash keyed dictionaries:
@@ -78,24 +79,55 @@ coffee_to_js = (stream, callback, filepath="") ->
         callback spool unless is_enoent
     stream.pipe coffee.stdin
 
-sass_to_css = (filepath, callback, imports_found_callback) ->
-    find_imports = (scss_spool) ->
-        import_filenames = []
-        import_regex = /@import[^;]*;/gm
-        line_regex = /[^"']+(?=(["'],( )?["'])|["'];$)/g
-        import_lines = scss_spool.match(import_regex) or []
-        import_lines.reverse()
-        for line in import_lines
-            imports = line.match(line_regex) or []
-            imports.reverse()
-            for imp in imports
-                extension = get_file_extension imp
-                if extension not in ["scss", "sass"]
-                    imp += ".scss"
-                    # TODO: Do this properly
-                    # import_filenames.unshift imp
-        imports_found_callback import_filenames
+add_sass_imports_to_filegroup = (sass_data, filepath, callback) ->
+    return callback []
+    # TODO: All filenames need full paths for this to work
 
+    current_dir = filepath.split("/").slice(0, -1).join("/") + "/"
+    import_filenames = []
+    import_regex = /@import[^;]*;/gm
+    line_regex = /[^"']+(?=(["'],( )?["'])|["'];$)/g
+    import_lines = sass_data.match(import_regex) or []
+    import_lines.reverse()
+    imports_count = 0
+    decr = ->
+        imports_count -= 1
+        if imports_count is 0
+            return callback import_filenames
+    for line in import_lines
+        imports = line.match(line_regex) or []
+        imports.reverse()
+        for import_filename in imports
+            imports_count += 1
+            (->
+                extension = get_file_extension import_filename
+                if extension is "css"
+                    return decr()
+                unless extension.length
+                    import_filename += ".scss"
+                look_for = ["#{current_dir}#{import_filename}"]
+                for dir in sass_load_paths
+                    look_for.push "#{dir}#{import_filename}"
+                
+                search_loop = (count) ->
+                    count = count or 0
+                    if count >= look_for.length
+                        # None of the filepaths found the import
+                        decr()
+                    filepath = look_for[count]
+                    console.log "STATING", filepath
+                    fs.stat filepath, (err, stat) ->
+                        count += 1
+                        if stat
+                            # Found the file
+                            import_filenames.unshift filepath
+                            decr()
+                        else
+                            search_loop count
+                search_loop()
+            )()
+
+sass_to_css = (filepath, callback, imports_found_callback) ->
     if use_sass_cli
         # We probably won't need this
         spool = ""
@@ -112,7 +144,7 @@ sass_to_css = (filepath, callback, imports_found_callback) ->
                 scss_spool += data.toString 'ascii'
             stream.on 'end', ->
                 return if import_is_enoent
-                find_imports scss_spool
+                add_sass_imports_to_filegroup scss_spool, filepath, imports_found_callback
             stream.resume()
         sass.stderr.on 'data', (data) ->
             error_txt = data.toString 'ascii'
@@ -147,7 +179,7 @@ sass_to_css = (filepath, callback, imports_found_callback) ->
             return if is_enoent
             # Check if we have any imports, so that they can be added to File groups
             if imports_found_callback?
-                find_imports scss_spool
+                add_sass_imports_to_filegroup scss_spool, filepath, imports_found_callback
 
             # Render to CSS
             sass.render scss_spool, (err, css) ->
@@ -162,7 +194,10 @@ sass_to_css = (filepath, callback, imports_found_callback) ->
 
         
 get_file_extension = (filename) ->
-    a = filename.split "."
+    a = filename.split "/"
+    a = a[a.length - 1]
+    a = a.split "."
+    return "" unless a.length > 1
     return a[a.length - 1]
 
 create_file = (hash, filetype, res) ->
@@ -389,6 +424,7 @@ module.exports.init = (settings, callback) ->
     cleanup_cron = settings.cleanup_cron or '00 00 00 * * 0'
     # Cron Syntax
     # Second(0-59) Minute(0-59) Hour(0-23) DayMonth(1-31) Month(1-12) DayWeek(0-6/Sunday-Saturday)
+    sass_load_paths = settings.sass_load_paths or []
 
     paths = {
         cache   : {
