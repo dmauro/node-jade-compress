@@ -155,7 +155,6 @@ sass_to_css = (filepath, callback, imports_found_callback) ->
             data = data.replace /\r\n|\r+|\n+/, ''
             spool += data
         sass.stdout.on 'end', ->
-            sass.kill 'SIGTERM'
             callback spool unless is_enoent
     else
         # Use node-sass plugin
@@ -540,7 +539,6 @@ module.exports.init = (settings, callback) ->
             return if is_enoent
             send_with_instant_expiry_js_headers res, js_spool
         stream.resume()
-        send_response req, res, "js"
 
     app.get "#{css_url}/*.scss", (req, res) ->
         filepath = "#{paths['file_abstract']['css']}/#{req.params[0]}.scss"
