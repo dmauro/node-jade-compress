@@ -134,4 +134,5 @@ CONS:
 
 TODO:
 -----
-* Consider either getting rid of regen cron or only regenerate when it runs
+* Replace regen cron with fs.watch on coffee and sass dirs.
+* Allow restore by supplying hash/filenames dictionary (run regen function immediately after).
