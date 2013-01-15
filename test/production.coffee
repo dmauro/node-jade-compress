@@ -429,6 +429,12 @@ describe "Requests", ->
             script.length.should.not.equal 0
             return
         ).then done, done
+    it "will serve up any files from the js directory", (done) ->
+        browser.visit("#{url}/js/valid.js").then(->
+            script = browser.text "body"
+            script.length.should.not.equal 0
+            return
+        ).then done, done
     it "can convert sass to css when a sass file is requested as css", (done) ->
         browser.visit("#{url}/css/valid.scss").then(->
             style = browser.text "body"
