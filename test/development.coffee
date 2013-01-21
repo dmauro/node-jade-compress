@@ -66,6 +66,46 @@ browser = null
 beforeEach ->
     browser = new Zombie()
 
+describe "Filters", ->
+    it "should not cut off an 'n' from the beginning of a file name", ->
+        compiler = jade.compile("""
+            :compress_js
+                new_test.coffee
+                nnn_test.coffee
+                not_test.coffee
+        """)
+        html = compiler()
+        scripts = html.split("</script>")
+        source_array = []
+        for script_tag in scripts
+            regex = /"([^"]*)"/
+            matches = regex.exec script_tag
+            continue unless matches?
+            source_array.push matches[1]
+        source_array[0].should.equal "/js/new_test.coffee"
+        source_array[1].should.equal "/js/nnn_test.coffee"
+        source_array[2].should.equal "/js/not_test.coffee"
+    it "shouldn't have a problem with extraneous line breaks", ->
+        compiler = jade.compile("""
+            :compress_js
+                new_test.coffee
+                nnn_test.coffee
+
+                not_test.coffee
+
+        """)
+        html = compiler()
+        scripts = html.split("</script>")
+        source_array = []
+        for script_tag in scripts
+            regex = /"([^"]*)"/
+            matches = regex.exec script_tag
+            continue unless matches?
+            source_array.push matches[1]
+        source_array[0].should.equal "/js/new_test.coffee"
+        source_array[1].should.equal "/js/nnn_test.coffee"
+        source_array[2].should.equal "/js/not_test.coffee"
+
 describe "Coffee", ->
     it "doesn't mangle coffeescript, only converts it", (done) ->
         compiler = jade.compile("""

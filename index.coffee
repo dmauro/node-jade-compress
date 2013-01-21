@@ -454,8 +454,8 @@ module.exports.init = (settings, callback) ->
         return filenames
 
     jade_get_filenames = (data) ->
-        data = data.replace /\\n+$/, ''
-        filenames = data.split /\\n+/
+        data = data.replace /(?:\\n)+$/, ''
+        filenames = data.split /(?:\\n)+/
         return filenames
     
     jade_hash = (data, filetype) ->
