@@ -19,8 +19,9 @@ Two custom jade filters are added to jade: compress_js and compress_css. These c
 jade templates by including a list of .coffee/.js and .scss/.css files respectively for each filter.
 When the template is rendered, a hash is created based on those filenames and the hash/filenames
 relationship is stored. The template renders a script or style tag pointing the user to a cache
-directory for the .js or .css file. Any requests made to a cache directory are intercepted to 
-check if the compressed file is stale, and if not the cached file will be served up.
+directory for the .js or .css file, that url includes the hash and the timestamp. Any requests made
+to a cache directory are intercepted to check if the compressed file is stale, and if not the cached
+file will be served up.
 
 And yes this will also automatically check your sass imports to see if they have been modified to
 invalidate any caches that rely on them.
