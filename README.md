@@ -125,13 +125,13 @@ deleted.
 Pros and Cons
 -------------
 
-PROS:
-* This is asynchronous. It will not generate a cache while rendering the template, but will wait for the cron job to run or for a user to request the cached file and then generate it asynchronously.
-* You can combine .js &amp; .coffee files and .css &amp; .scss in a single compress_js or compress_css filter.
-* In a dev environment, this will not minify and compress the Javascript, but will run coffee for you and give back the individual files for better debugging.
+PROS:  
+* This is asynchronous. It will not generate a cache while rendering the template, but will wait for the cron job to run or for a user to request the cached file and then generate it asynchronously.  
+* You can combine .js &amp; .coffee files and .css &amp; .scss in a single compress_js or compress_css filter.  
+* In a dev environment, this will not minify and compress the Javascript, but will run coffee for you and give back the individual files for better debugging.  
 
-CONS:
-* I haven't actually tried this out under heavy load.
+CONS:  
+* I haven't actually tried this out under heavy load.  
 
 TODO:
 -----
