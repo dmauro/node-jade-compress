@@ -195,7 +195,7 @@ get_file_extension = (filename) ->
 
 create_file = (hash, filetype, res) ->
     processing[hash] = true
-    filenames = file_groups[hash]
+    filenames = file_groups[hash].filenames
     spool = []
     i = 0
     for index in [0...filenames.length]
@@ -253,8 +253,8 @@ create_file = (hash, filetype, res) ->
                     , (import_filenames) ->
                         # Sass @import is found callback
                         for import_filename in import_filenames
-                            if import_filename not in file_groups[hash]
-                                file_groups[hash].push import_filename
+                            if import_filename not in file_groups[hash].filenames
+                                file_groups[hash].filenames.push import_filename
         )(->
             filepath = "#{paths['cache'][filetype]}/#{hash}.#{filetype}"
             data = ""
@@ -297,7 +297,7 @@ cache_is_stale = (cache_mtime, filenames, callback) ->
         
 send_response = (req, res, filetype) ->
     hash = req.params.hash
-    filenames = file_groups[hash]
+    filenames = if file_groups[hash]? then file_groups[hash].filenames
     return res.send 404 unless filenames
     filepath = "#{paths['cache'][filetype]}/#{req.params.hash}.#{filetype}"
     fs.stat filepath, (err, cache_stat) ->
@@ -322,7 +322,8 @@ send_response = (req, res, filetype) ->
 
 test_helper.regen_cron = regen_stale_caches = ->
     # Called by cron so that your users don't have to wait
-    for own hash, filenames of file_groups
+    for own hash, value of file_groups
+        filenames = value.filenames
         continue unless filenames
         ((hash, filenames) ->
             # Guess filetype of hash from filenames
@@ -351,7 +352,8 @@ cron_last_checked = 0
 test_helper.clear_cron = clear_old_caches = ->
     # If a hash hasn't been accessed since this was last called, we'll clear it
     i = 0
-    for own hash, filenames of file_groups
+    for own hash, value of file_groups
+        filenames = value.filenames
         continue unless filenames
         i++
         ((hash, filenames) ->
@@ -470,7 +472,7 @@ module.exports.init = (settings, callback) ->
                 # Compress CSS can only include .css or .scss files
                 return null
         hash = create_hash filenames
-        file_groups[hash] = filenames unless file_groups[hash]?
+        file_groups[hash] = {filenames:filenames} unless file_groups[hash]?
         return hash
 
     jade.filters.compress_css = (data) ->
