@@ -492,7 +492,7 @@ module.exports.init = (settings, callback) ->
     # you should not send your users to these:
     send_with_instant_expiry = (res, data) ->
         res.setHeader 'Date', new Date().toUTCString()
-        res.setHeader 'Cache-Control', 'public, max-age=0'
+        res.setHeader 'Cache-Control', 'no-cache, no-store, public, max-age=0'
         res.setHeader 'Last-Modified', new Date().toUTCString()
         res.send data
 
