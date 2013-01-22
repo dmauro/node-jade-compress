@@ -161,3 +161,48 @@ describe "Failures", ->
             return
         ).then done, done
 
+describe "Caching", ->
+    it "doesn't cache coffeescript files pulled individually", (done) ->
+        before = """
+            window.a_variable = "something"
+            some_math = random.Math()
+        """
+        after = """
+            window.a_variable = "zomething"
+            some_math = random.Math()
+        """
+        fs. writeFileSync "#{root_dir}/coffee/temp.coffee", before
+        browser.visit("#{url}/js/temp.coffee").then(->
+            browser.resources.browser.response.headers['cache-control'].should.equal 'no-cache, no-store, public, max-age=0'
+            browser.html().indexOf("something").should.not.equal -1
+            fs. writeFileSync "#{root_dir}/coffee/temp.coffee", after
+            browser.visit("#{url}/js/temp.coffee").then(->
+                browser.resources.browser.response.headers['cache-control'].should.equal 'no-cache, no-store, public, max-age=0'
+                browser.html().indexOf("zomething").should.not.equal -1
+                done()
+            ).fail done
+            return
+        ).fail done
+    it "doesn't cache a file with a coffeescript error", (done) ->
+        filename = "#{root_dir}/coffee/temp.coffee"
+        before = """
+            var window.a_variable = "something"
+            some_math = random.Math()
+        """
+        after = """
+            window.a_variable = "zomething"
+            some_math = random.Math()
+        """
+        fs. writeFileSync filename, before
+        browser.visit("#{url}/js/temp.coffee").then(->
+            browser.resources.browser.response.headers['cache-control'].should.equal 'no-cache, no-store, public, max-age=0'
+            browser.html().indexOf("Error").should.not.equal -1
+            fs. writeFileSync "#{root_dir}/coffee/temp.coffee", after
+            browser.visit("#{url}/js/temp.coffee").then(->
+                browser.resources.browser.response.headers['cache-control'].should.equal 'no-cache, no-store, public, max-age=0'
+                browser.html().indexOf("zomething").should.not.equal -1
+                fs.unlinkSync filename
+                done()
+            ).fail done
+            return
+        ).fail done
