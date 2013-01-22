@@ -240,6 +240,7 @@ describe "Coffee compression", ->
         matches = hash_regex.exec html
         throw new Error "Hash Regex fail" unless matches.length
         hash = matches[1]
+        hash = hash.split("-")[0]
         # DELETE THE HASH AS THE CRON WOULD DO
         delete file_groups[hash]
         url_regex = /"([^"]*)"/
@@ -403,6 +404,7 @@ describe "Sass compression", ->
         matches = hash_regex.exec html
         throw new Error "Hash Regex fail" unless matches.length
         hash = matches[1]
+        hash = hash.split("-")[0]
         # DELETE THE HASH AS THE CRON WOULD DO
         delete file_groups[hash]
         url_regex = /href="([^"]*)"/

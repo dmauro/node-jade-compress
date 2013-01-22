@@ -256,7 +256,9 @@ create_file = (hash, filetype, res) ->
                             if import_filename not in file_groups[hash].filenames
                                 file_groups[hash].filenames.push import_filename
         )(->
-            filepath = "#{paths['cache'][filetype]}/#{hash}.#{filetype}"
+            timestamp = new Date().getTime()
+            file_groups[hash].timestamp = timestamp
+            filepath = "#{paths['cache'][filetype]}/#{hash}-#{timestamp}.#{filetype}"
             data = ""
             for chunk in spool
                 data += chunk
@@ -296,10 +298,11 @@ cache_is_stale = (cache_mtime, filenames, callback) ->
             callback false if i is 0 and !is_done
         
 send_response = (req, res, filetype) ->
-    hash = req.params.hash
+    hash = req.params.filename.split("-")[0]
     filenames = if file_groups[hash]? then file_groups[hash].filenames
     return res.send 404 unless filenames
-    filepath = "#{paths['cache'][filetype]}/#{req.params.hash}.#{filetype}"
+    timestamp = file_groups[hash].timestamp
+    filepath = "#{paths['cache'][filetype]}/#{hash}-#{timestamp}.#{filetype}"
     fs.stat filepath, (err, cache_stat) ->
         if not err
             cache_is_stale cache_stat.mtime, filenames, (is_stale) ->
@@ -310,8 +313,8 @@ send_response = (req, res, filetype) ->
         else if err.code is "ENOENT"
             # This file has not been generated yet
             # Put us in the queue to receive when ready
-            if processing[req.params.hash]
-                requests_waiting_on_compress[req.params.hash].push(
+            if processing[hash]
+                requests_waiting_on_compress[hash].push(
                     req : req
                     res : res
                 )
@@ -324,6 +327,7 @@ test_helper.regen_cron = regen_stale_caches = ->
     # Called by cron so that your users don't have to wait
     for own hash, value of file_groups
         filenames = value.filenames
+        timestamp = value.timestamp
         continue unless filenames
         ((hash, filenames) ->
             # Guess filetype of hash from filenames
@@ -332,7 +336,7 @@ test_helper.regen_cron = regen_stale_caches = ->
                 filetype = "css"
             else
                 filetype = "js"
-            filepath = "#{paths['cache'][filetype]}/#{hash}.#{filetype}"
+            filepath = "#{paths['cache'][filetype]}/#{hash}-#{timestamp}.#{filetype}"
             fs.stat filepath, (err, cache_stat) ->
                 if err
                     if err.code is "ENOENT"
@@ -354,6 +358,7 @@ test_helper.clear_cron = clear_old_caches = ->
     i = 0
     for own hash, value of file_groups
         filenames = value.filenames
+        timestamp = value.timestamp
         continue unless filenames
         i++
         ((hash, filenames) ->
@@ -363,7 +368,7 @@ test_helper.clear_cron = clear_old_caches = ->
                 filetype = "css"
             else
                 filetype = "js"
-            filepath = "#{paths['cache'][filetype]}/#{hash}.#{filetype}"
+            filepath = "#{paths['cache'][filetype]}/#{hash}-#{timestamp}.#{filetype}"
             fs.stat filepath, (err, cache_stat) ->
                 i--
                 if err
@@ -478,17 +483,20 @@ module.exports.init = (settings, callback) ->
     jade.filters.compress_css = (data) ->
         hash = jade_hash data, "css"
         return "" unless hash
-        return "<link rel=\"stylesheet\" href=\"#{paths['url']['css']}/#{hash}.css\">"
+        timestamp = file_groups[hash].timestamp
+        return "<link rel=\"stylesheet\" href=\"#{paths['url']['css']}/#{hash}-#{timestamp}.css\">"
 
     jade.filters.compress_js = (data) ->
         hash = jade_hash data, "js"
         return "" unless hash
-        return "<script src=\"#{paths['url']['js']}/#{hash}.js\"></script>"
+        timestamp = file_groups[hash].timestamp
+        return "<script src=\"#{paths['url']['js']}/#{hash}-#{timestamp}.js\"></script>"
 
     jade.filters.compress_js_async = (data) ->
         hash = jade_hash data, "js"
         return "" unless hash
-        return "<script>var d = document,s = d.createElement('script'),h = d.getElementsByTagName('head')[0];s.setAttribute('async', true);s.src = \"#{paths['url']['js']}/#{hash}.js\";h.appendChild(s);</script>"
+        timestamp = file_groups[hash].timestamp
+        return "<script>var d = document,s = d.createElement('script'),h = d.getElementsByTagName('head')[0];s.setAttribute('async', true);s.src = \"#{paths['url']['js']}/#{hash}-#{timestamp}.js\";h.appendChild(s);</script>"
 
     # These are mostly just to help looking at your files
     # you should not send your users to these:
@@ -506,10 +514,10 @@ module.exports.init = (settings, callback) ->
         res.setHeader 'Content-Type', "text/css;charset=UTF-8"
         send_with_instant_expiry res, data
         
-    app.get "#{paths['url']['js']}/:hash.js", (req, res) ->
+    app.get "#{paths['url']['js']}/:filename.js", (req, res) ->
         send_response req, res, "js"
 
-    app.get "#{paths['url']['css']}/:hash.css", (req, res) ->
+    app.get "#{paths['url']['css']}/:filename.css", (req, res) ->
         send_response req, res, "css"
 
     app.get "#{js_url}/*.coffee", (req, res) ->
