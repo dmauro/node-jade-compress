@@ -138,4 +138,3 @@ TODO:
 * Replace regen cron with fs.watch on coffee and sass dirs.
 * Allow restore by supplying hash/filenames dictionary (run regen function immediately after).
 * Improve sass import search
-* Look into why mangling jQuery is failing
