@@ -57,7 +57,7 @@ worked out a little better.)
     compress = require 'node-jade-compress'
     app = express.createServer()
     app.set 'view engine', 'jade'
-    compress.init({app : app, jade})
+    compress.init({app : app})
 ```
 
 Optional Settings
@@ -137,3 +137,4 @@ TODO:
 -----
 * Replace regen cron with fs.watch on coffee and sass dirs.
 * Allow restore by supplying hash/filenames dictionary (run regen function immediately after).
+* Improve sass import search
