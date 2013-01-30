@@ -21,6 +21,8 @@ app.set "view engine", "jade"
 app.set "view options", {layout: false}
 app.get "/js_async", (req, res) ->
     res.render "js_async"
+app.get "/jquery", (req, res) ->
+    res.render "jquery"
 app.listen port, ip
 
 cleanup_dirs = ["#{root_dir}/js/cache", "#{root_dir}/css/cache"]
@@ -441,6 +443,14 @@ describe "Requests", ->
         browser.visit("#{url}/css/valid.scss").then(->
             style = browser.text "body"
             style.length.should.not.equal 0
+            return
+        ).then done, done
+    it "can properly mangle and serve jQuery", (done) ->
+        browser.visit("#{url}/jquery").then(->
+            regex = /<script src="([^"]*)/gm
+            matches = regex.exec browser.html()
+            throw new Error "URL Regex fail" unless matches and matches.length
+            should.exist browser.window.$
             return
         ).then done, done
     it "can serve up a cached file to simultaneous requests even if it doesn't exist yet", (done) ->
