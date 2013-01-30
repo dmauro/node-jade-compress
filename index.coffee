@@ -483,19 +483,19 @@ module.exports.init = (settings, callback) ->
     jade.filters.compress_css = (data) ->
         hash = jade_hash data, "css"
         return "" unless hash
-        timestamp = file_groups[hash].timestamp
+        timestamp = file_groups[hash].timestamp or new Date().getTime()
         return "<link rel=\"stylesheet\" href=\"#{paths['url']['css']}/#{hash}-#{timestamp}.css\">"
 
     jade.filters.compress_js = (data) ->
         hash = jade_hash data, "js"
         return "" unless hash
-        timestamp = file_groups[hash].timestamp
+        timestamp = file_groups[hash].timestamp or new Date().getTime()
         return "<script src=\"#{paths['url']['js']}/#{hash}-#{timestamp}.js\"></script>"
 
     jade.filters.compress_js_async = (data) ->
         hash = jade_hash data, "js"
         return "" unless hash
-        timestamp = file_groups[hash].timestamp
+        timestamp = file_groups[hash].timestamp or new Date().getTime()
         return "<script>var d = document,s = d.createElement('script'),h = d.getElementsByTagName('head')[0];s.setAttribute('async', true);s.src = \"#{paths['url']['js']}/#{hash}-#{timestamp}.js\";h.appendChild(s);</script>"
 
     # These are mostly just to help looking at your files
