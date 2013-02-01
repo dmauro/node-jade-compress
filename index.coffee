@@ -342,7 +342,7 @@ test_helper.regen_cron = regen_stale_caches = ->
                     if err.code is "ENOENT"
                         # This hash doesn't have a file, and it is not processing
                         # so we should remove it from file_groups
-                        return delete file_groups[hash]
+                        return delete file_groups[hash] unless processing[hash] is true
                     else
                         throw err
                     return
