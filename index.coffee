@@ -7,7 +7,6 @@ uglify = require 'uglify-js'
 sqwish = require 'sqwish'
 cron = require 'cron'
 utils = require('connect').utils
-coffeescript = require 'coffee-script'
 sass = require 'node-sass'
 use_sass_cli = true
 paths = {}
