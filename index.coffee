@@ -399,7 +399,7 @@ module.exports.init = (settings, callback) ->
     root_dir = settings.root_dir or process.cwd
     js_dir = settings.js_dir or "js"
     coffee_dir = settings.coffee_dir or "coffee"
-    css_dir = settings.js_dir or "css"
+    css_dir = settings.css_dir or "css"
     sass_dir = settings.sass_dir or "sass"
     cache_dir = settings.cache_dir or "cache"
     js_url = settings.js_url or "/js"
@@ -413,13 +413,13 @@ module.exports.init = (settings, callback) ->
     sass_load_paths = settings.sass_load_paths or []
 
     paths = {
-        cache   : {
-            js  : "#{root_dir}/#{js_dir}/#{cache_dir}"
-            css : "#{root_dir}/#{css_dir}/#{cache_dir}"
-        }
         file_standard   : {
             js  : "#{root_dir}/#{js_dir}"
             css : "#{root_dir}/#{css_dir}"
+        }
+        cache   : {
+            js  : "#{root_dir}/#{js_dir}/#{cache_dir}"
+            css : "#{root_dir}/#{css_dir}/#{cache_dir}"
         }
         file_abstract   : {
             js  : "#{root_dir}/#{coffee_dir}"

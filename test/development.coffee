@@ -16,46 +16,51 @@ root_dir = "#{cwd}/test/server_root"
 app = express.createServer()
 app.listen port, ip
 
-cleanup_dirs = ["#{root_dir}/js/cache", "#{root_dir}/css/cache"]
+cleanup_dirs = ["#{root_dir}/foo", "#{root_dir}/bar"]
 
 cleanup = (done) ->
     # Delete all files in cache dir, then then the dir itself
     max = cleanup_dirs.length
     for dir in cleanup_dirs
-        ((dir) ->
-            finish_up = ->
-                max -= 1
-                if max is 0
-                    done()
-
+        wipeout_dir = (dir, callback) ->
             remove_dir = ->
                 fs.rmdir dir, (err) ->
                     throw err if err
-                    finish_up()
+                    callback()
 
             fs.readdir dir, (err, files) ->
                 if err
-                    return finish_up() if err.code is "ENOENT"
+                    return callback() if err.code is "ENOENT"
                     throw err
                 file_count = files.length
                 if file_count > 0
                     for file in files
-                        ext = file.split "."
-                        fs.unlink "#{dir}/#{file}", (err) ->
-                            throw err if err
-                            file_count -= 1
-                            if file_count is 0
-                                remove_dir()
+                        filepath = "#{dir}/#{file}"
+                        fs.stat filepath, (err, stats) ->
+                            done_removing = (err) ->
+                                throw err if err
+                                file_count -= 1
+                                if file_count is 0
+                                    remove_dir()
+                            if stats.isFile()
+                                fs.unlink filepath, done_removing
+                            else
+                                wipeout_dir filepath, done_removing
                 else
                     remove_dir()
 
-        )(dir)
+        wipeout_dir dir, ->
+            max -= 1
+            if max is 0
+                done()
 
 before (done) ->
     cleanup ->
         compress.init(
             app         : app
             root_dir    : root_dir
+            js_dir      : "foo"
+            css_dir     : "bar"
         )
         done()
 
@@ -65,6 +70,24 @@ after (done) ->
 browser = null
 beforeEach ->
     browser = new Zombie()
+
+describe "Unfamiliar CSS and JS dir names", ->
+    it "should have created the js dir", (done) ->
+        fs.stat "#{root_dir}/foo", (err, dir_stat) ->
+            should.not.exist err
+            done()
+    it "should have created the css dir", (done) ->
+        fs.stat "#{root_dir}/bar", (err, dir_stat) ->
+            should.not.exist err
+            done()
+    it "should have created the js/cache dir", (done) ->
+        fs.stat "#{root_dir}/foo/cache", (err, dir_stat) ->
+            should.not.exist err
+            done()
+    it "should have created the css/cache dir", (done) ->
+        fs.stat "#{root_dir}/bar/cache", (err, dir_stat) ->
+            should.not.exist err
+            done()
 
 describe "Filters", ->
     it "should not cut off an 'n' from the beginning of a file name", ->
