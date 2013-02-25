@@ -59,6 +59,15 @@ worked out a little better.)
     app.set 'view engine', 'jade'
     compress.init({app : app})
 ```
+NOTE: If you're using Javascript, you'll need to require CoffeeScript, and it would look more like this:
+```JavaScript
+    var express = require('express');
+    var coffee = require('coffee-script');
+    var compress = require('node-jade-compress');
+    var app = express.createServer();
+    app.set('view engine', 'jade');
+    compress.init({app : app});
+```
 
 Optional Settings
 -----------------
