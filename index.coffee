@@ -396,7 +396,7 @@ module.exports.init = (settings, callback) ->
     jade = settings.jade or require 'jade'
     # Everything else is optional
     file_groups = settings.file_groups or {}
-    root_dir = settings.root_dir or process.cwd
+    root_dir = settings.root_dir or process.cwd()
     js_dir = settings.js_dir or "js"
     coffee_dir = settings.coffee_dir or "coffee"
     css_dir = settings.css_dir or "css"
