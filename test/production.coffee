@@ -540,7 +540,7 @@ describe "Requests", ->
                     ).then done, done
                 , 1000)
         , 1000)
-    it "filename will change when we update a constituent file", (done) ->
+    it "filename will change when we update a constituent file, and not otherwise", (done) ->
         compiler = jade.compile("""
             :compress_css
                 has_import.scss
@@ -549,7 +549,6 @@ describe "Requests", ->
         regex = /href="([^"]*)"/
         matches = regex.exec html
         should.exist matches
-        return done() unless matches.length
         cache_url = matches[1]
         setTimeout( ->
             fs.utimes "#{root_dir}/sass/mixins.scss", new Date(), new Date(), ->
@@ -562,10 +561,21 @@ describe "Requests", ->
                     regex = /href="([^"]*)"/
                     matches = regex.exec html
                     should.exist matches
-                    return done() unless matches.length
                     new_cache_url = matches[1]
                     new_cache_url.should.not.equal cache_url
-                    done()
+                    browser.visit("#{url}#{cache_url}").then(->
+                        compiler = jade.compile("""
+                            :compress_css
+                                has_import.scss
+                        """)
+                        html = compiler()
+                        regex = /href="([^"]*)"/
+                        matches = regex.exec html
+                        should.exist matches
+                        newer_cache_url = matches[1]
+                        newer_cache_url.should.equal new_cache_url
+                        done()
+                    ).fail done
                 ).fail done
         , 2000)
     it "will 304 on a request that hasn't changed for a js cache file", (done) ->
