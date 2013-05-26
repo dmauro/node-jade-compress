@@ -85,6 +85,7 @@ use any of these optional settings:
     css_url         # Defaults to "/css"
     js_cache_url    # Defaults to "#{js_url}/cache"
     css_cache_url   # Defaults to "#{css_url}/cache"
+    sass_load_paths # Defaults to []
     regen_cron      # Defaults to '*/10 * * * * *' or every ten minutes
     cleanup_cron    # Defaults to '00 00 00 * * 0' or once per week
 
@@ -116,6 +117,15 @@ sass    : "#{css_url}"
 ```
 (You should only use this for aiding in development, don't point users to these urls as they
 are set to expire instantly and won't be cached properly)
+
+### Sass load paths ###
+This is required to make sure imports properly work with sass. Any directories which have sass
+files you will be using should be included in this array.
+
+Example:
+```
+sass_load_paths : ["#{root_dir}/sass"]
+```
 
 ### Cron ###
 Two cron jobs will be spawned, one to look for invalid caches that need to be regenerated, and
