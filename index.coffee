@@ -402,6 +402,8 @@ module.exports.init = (settings, callback) ->
     css_dir = settings.css_dir or "css"
     sass_dir = settings.sass_dir or "sass"
     cache_dir = settings.cache_dir or "cache"
+    js_cache_dir = settings.js_cache_dir or "#{js_dir}/#{cache_dir}"
+    css_cache_dir = settings.css_cache_dir or "#{css_dir}/#{cache_dir}"
     js_url = settings.js_url or "/js"
     css_url = settings.css_url or "/css"
     js_cache_url = settings.js_cache_url or "#{js_url}/cache"
@@ -418,8 +420,8 @@ module.exports.init = (settings, callback) ->
             css : "#{root_dir}/#{css_dir}"
         }
         cache   : {
-            js  : "#{root_dir}/#{js_dir}/#{cache_dir}"
-            css : "#{root_dir}/#{css_dir}/#{cache_dir}"
+            js  : "#{root_dir}/#{js_cache_dir}"
+            css : "#{root_dir}/#{css_cache_dir}"
         }
         file_abstract   : {
             js  : "#{root_dir}/#{coffee_dir}"
