@@ -8,7 +8,7 @@ sqwish = require 'sqwish'
 cron = require 'cron'
 utils = require('connect').utils
 sass = require 'node-sass'
-use_sass_cli = true
+use_sass_cli = false
 paths = {}
 test_helper = {
     files_generated : 0
@@ -177,11 +177,12 @@ sass_to_css = (filepath, callback, imports_found_callback) ->
             sass.render scss_spool, (err, css) ->
                 if err
                     if process.env.NODE_ENV is "development"
-                        return callback "body:before{content:\"#{err.replace(/"/g, "\\\"")}\";font-size:16px;font-family:monospace;color:#900;}"
+                        return callback "body:before{content:\"SASS ERROR: Syntax error:Invalid CSS #{err.replace(/"/g, "\\\"")}\";font-size:16px;font-family:monospace;color:#900;}"
                     else
                         return callback ""
                 else
                     return callback css
+            , { includePaths : sass_load_paths }
         stream.resume()
 
         
@@ -408,11 +409,11 @@ module.exports.init = (settings, callback) ->
     css_url = settings.css_url or "/css"
     js_cache_url = settings.js_cache_url or "#{js_url}/cache"
     css_cache_url = settings.css_cache_url or "#{css_url}/cache"
+    sass_load_paths = settings.sass_load_paths or []
     regen_cron = settings.regen_cron or '*/10 * * * * *'
     cleanup_cron = settings.cleanup_cron or '00 00 00 * * 0'
     # Cron Syntax
     # Second(0-59) Minute(0-59) Hour(0-23) DayMonth(1-31) Month(1-12) DayWeek(0-6/Sunday-Saturday)
-    sass_load_paths = settings.sass_load_paths or []
 
     paths = {
         file_standard   : {

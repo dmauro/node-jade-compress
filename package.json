@@ -20,7 +20,7 @@
     "compressor"
   ],
   "dependencies": {
-    "node-sass": "0.3.0",
+    "node-sass": "0.4.3",
     "connect" : "2.3.2",
     "cron": "1.0.x",
     "express" : "2.5.1",
