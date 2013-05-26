@@ -6,9 +6,6 @@ Node-jade-compress provides you with jade template filters that allow you to eas
 concatenate and minify/uglify your scripts and styles without an extra build step, and with
 support for CoffeeScript and Sass.
 
-NOTE: This currently requires sass to be installed to work. I'm waiting on a bugfix in the node-sass
-plugin and then I can drop this requirement.
-
 How does it work?
 -----------------
 
