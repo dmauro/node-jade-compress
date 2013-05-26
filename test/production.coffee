@@ -97,6 +97,7 @@ describe "Setup", ->
                     root_dir        : root_dir
                     cleanup_cron    : "0 0 0 0 1 *"
                     regen_cron      : "0 0 0 0 1 *"
+                    sass_load_paths : ["#{root_dir}/sass"]
                 }, (_file_groups) ->
                     file_groups = _file_groups
                     done()

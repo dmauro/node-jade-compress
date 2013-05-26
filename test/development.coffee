@@ -57,10 +57,11 @@ cleanup = (done) ->
 before (done) ->
     cleanup ->
         compress.init(
-            app         : app
-            root_dir    : root_dir
-            js_dir      : "foo"
-            css_dir     : "bar"
+            app             : app
+            root_dir        : root_dir
+            js_dir          : "foo"
+            css_dir         : "bar"
+            sass_load_paths : ["#{root_dir}/sass"]
         )
         done()
 
