@@ -39,6 +39,7 @@ serve_file = (req, res, filepath, is_fresh = false) ->
         res.setHeader 'ETag', utils.etag stat
         filetype = mime.lookup filepath
         charset = mime.charsets.lookup filetype
+        # FIXME: CHARSET RETURNS UNDEFINED FOR 'application/javascript'
         res.setHeader 'Content-Type', "#{filetype};charset=#{charset}"
         res.setHeader 'Accept-Ranges', 'bytes'
         # Check if we should just 304 before sending the file
