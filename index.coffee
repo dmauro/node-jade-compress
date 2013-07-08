@@ -465,6 +465,9 @@ module.exports.init = (settings, callback) ->
         return filenames
 
     jade_get_filenames = (data) ->
+        # Remove trailing newline
+        data = data.replace /(?:\n|\r)+$/, ''
+        # Split by newlines
         filenames = data.split /(?:\n|\r)+/
         return filenames
     
