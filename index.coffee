@@ -8,6 +8,7 @@ sqwish = require 'sqwish'
 cron = require 'cron'
 utils = require('connect').utils
 sass = require 'node-sass'
+mkdirp = require 'mkdirp'
 use_sass_cli = false
 paths = {}
 test_helper = {
@@ -441,7 +442,7 @@ module.exports.init = (settings, callback) ->
             ((dir) ->
                 fs.stat dir, (err, cache_stat) ->
                     if err and err.code is "ENOENT"
-                        fs.mkdir dir, 0o0755, (err) ->
+                        mkdirp dir, 0o0755, (err) ->
                             throw err if err
             )(dir)
 
