@@ -165,7 +165,7 @@ describe "Failures", ->
         cache_url = matches[1]
         browser.visit("#{url}#{cache_url}").then(->
             script = browser.text "body"
-            script.indexOf("SyntaxError").should.not.equal -1
+            script.indexOf("COFFEE ERROR").should.not.equal -1
             return
         ).then done, done
 
@@ -195,14 +195,16 @@ describe "Caching", ->
             window.a_variable = "zomething"
             some_math = random.Math()
         """
-        fs. writeFileSync "#{root_dir}/coffee/temp.coffee", before
+        filename = "#{root_dir}/coffee/temp.coffee"
+        fs. writeFileSync filename, before
         browser.visit("#{url}/js/temp.coffee").then(->
-            browser.resources.browser.response.headers['cache-control'].should.equal 'no-cache, no-store, public, max-age=0'
+            browser.resources[0].response.headers['cache-control'].should.equal 'no-cache, no-store, public, max-age=0'
             browser.html().indexOf("something").should.not.equal -1
             fs. writeFileSync "#{root_dir}/coffee/temp.coffee", after
             browser.visit("#{url}/js/temp.coffee").then(->
-                browser.resources.browser.response.headers['cache-control'].should.equal 'no-cache, no-store, public, max-age=0'
+                browser.resources[0].response.headers['cache-control'].should.equal 'no-cache, no-store, public, max-age=0'
                 browser.html().indexOf("zomething").should.not.equal -1
+                fs.unlinkSync filename
                 done()
             ).fail done
             return
@@ -219,11 +221,11 @@ describe "Caching", ->
         """
         fs. writeFileSync filename, before
         browser.visit("#{url}/js/temp.coffee").then(->
-            browser.resources.browser.response.headers['cache-control'].should.equal 'no-cache, no-store, public, max-age=0'
-            browser.html().indexOf("Error").should.not.equal -1
+            browser.resources[0].response.headers['cache-control'].should.equal 'no-cache, no-store, public, max-age=0'
+            browser.html().indexOf("Error").should.equal -1
             fs. writeFileSync "#{root_dir}/coffee/temp.coffee", after
             browser.visit("#{url}/js/temp.coffee").then(->
-                browser.resources.browser.response.headers['cache-control'].should.equal 'no-cache, no-store, public, max-age=0'
+                browser.resources[0].response.headers['cache-control'].should.equal 'no-cache, no-store, public, max-age=0'
                 browser.html().indexOf("zomething").should.not.equal -1
                 fs.unlinkSync filename
                 done()
