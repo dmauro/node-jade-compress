@@ -262,7 +262,7 @@ describe "Coffee compression", ->
             matches = regex.exec browser.html()
             throw new Error "URL Regex fail" unless matches and matches.length
             js_url = matches[1]
-            browser.visit("#{js_url}").then(->
+            browser.visit("#{url}#{js_url}").then(->
                 script = browser.text "body"
                 script.length.should.not.equal 0
                 return
