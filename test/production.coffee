@@ -150,7 +150,7 @@ describe "Setup", ->
 describe "Coffee compression", ->
     browser = null
     beforeEach ->
-        browser = new Zombie()
+        browser = new Zombie({ silent: true })
 
     it "can convert coffee files into a single bunch of mangled js", (done) ->
         compiler = jade.compile("""
@@ -286,7 +286,7 @@ describe "Coffee compression", ->
         )
 
 describe "Sass compression", ->
-    browser = new Zombie()
+    browser = new Zombie({ silent: true })
 
     it "can convert sass files into a single css file", (done) ->
         compiler = jade.compile("""
@@ -426,7 +426,7 @@ describe "Requests", ->
     browser = null
 
     beforeEach ->
-        browser = new Zombie()
+        browser = new Zombie({ silent: true })
 
     it "can convert coffee to js when a coffee file is requested from the js directory", (done) ->
         browser.visit("#{url}/js/valid.coffee").then(->
@@ -455,7 +455,7 @@ describe "Requests", ->
             return
         ).then done, done
     it "can serve up a cached file to simultaneous requests even if it doesn't exist yet", (done) ->
-        second_browser = new Zombie()
+        second_browser = new Zombie({ silent: true })
         # We have to have no yet generated this in our tests
         compiler = jade.compile("""
             :compress_css

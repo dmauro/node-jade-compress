@@ -70,7 +70,7 @@ after (done) ->
 
 browser = null
 beforeEach ->
-    browser = new Zombie()
+    browser = new Zombie({ silent: true })
 
 describe "Unfamiliar CSS and JS dir names", ->
     it "should have created the js dir", (done) ->
