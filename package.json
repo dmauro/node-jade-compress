@@ -20,7 +20,7 @@
     "compressor"
   ],
   "dependencies": {
-    "node-sass": "0.4.3",
+    "node-sass": "0.5.x",
     "connect" : "2.3.2",
     "cron": "1.0.x",
     "express" : "2.5.1",
@@ -30,12 +30,15 @@
     "mkdirp" : "0.3.x"
   },
   "peerDependencies": {
-    "coffee-script" : "1.x"
+    "coffee-script" : "1.x",
+    "jade": "0.x"
   },
   "devDependencies": {
     "mocha": "1.7.x",
     "should": "1.2.x",
-    "zombie": "2.x.x"
+    "zombie": "2.x.x",
+    "coffee-script" : "1.x",
+    "jade": "0.x"
   },
   "author": "David Mauro",
   "license": "BSD"
