@@ -104,7 +104,7 @@ add_sass_imports_to_filegroup = (sass_data, filepath, callback) ->
                 look_for = ["#{current_dir}#{import_filename}"]
                 for dir in sass_load_paths
                     look_for.push "#{dir}#{import_filename}"
-                
+
                 search_loop = (count) ->
                     count = count or 0
                     if count >= look_for.length
@@ -187,7 +187,7 @@ sass_to_css = (filepath, callback, imports_found_callback) ->
             , { includePaths : sass_load_paths }
         stream.resume()
 
-        
+
 get_file_extension = (filename) ->
     a = filename.split "/"
     a = a[a.length - 1]
@@ -216,33 +216,33 @@ create_file = (hash, filetype, res) ->
                 spool[index] = data
                 i++
                 callback() if i >= max
-                
+
             extension = get_file_extension filename
-                
+
             # Deal with COFFEE and JS files
             if filetype is "js"
                 stream = fs.createReadStream filename
                 stream.pause()
                 stream.on 'error', (data) ->
-                    if data.toString('ascii').indexOf('ENOENT') > -1
+                    if data.toString('utf8').indexOf('ENOENT') > -1
                         return file_not_found()
                 if extension is "js"
                     js_spool = ""
                     stream.on 'data', (data) ->
-                        js_spool += data.toString 'ascii'
+                        js_spool += data.toString 'utf8'
                     stream.on 'end', ->
                         done_parsing js_spool
                 else if extension is "coffee"
                     coffee_to_js stream, (data) ->
                         unless data?
                             return file_not_found()
-                        done_parsing data.toString 'ascii'
+                        done_parsing data.toString 'utf8'
                 stream.resume()
 
             # Deal with SCSS and CSS files
             else if filetype is "css"
                 if extension is "css"
-                    fs.readFile filename, 'ascii', (err, data) ->
+                    fs.readFile filename, 'utf8', (err, data) ->
                         if err and err.code is "ENOENT"
                             return file_not_found()
                         throw err if err
@@ -268,7 +268,7 @@ create_file = (hash, filetype, res) ->
                 data = mangle_js data
             if filetype is "css"
                 data = sqwish.minify data
-            fs.writeFile filepath, data, 'ascii', (err) ->
+            fs.writeFile filepath, data, 'utf8', (err) ->
                 # Serve this file up to anyone else waiting for it
                 delete processing[hash]
                 if requests_waiting_on_compress[hash]
@@ -298,7 +298,7 @@ cache_is_stale = (cache_mtime, filenames, callback) ->
                     callback true unless is_done
                     is_done = true
             callback false if i is 0 and !is_done
-        
+
 send_response = (req, res, filetype) ->
     hash = req.params.filename.split("-")[0]
     filenames = if file_groups[hash]? then file_groups[hash].filenames
@@ -470,7 +470,7 @@ module.exports.init = (settings, callback) ->
         # Split by newlines
         filenames = data.split /(?:\n|\r)+/
         return filenames
-    
+
     jade_hash = (data, filetype) ->
         filenames = jade_get_filepaths data
         # Force check on SASS dependencies
@@ -519,7 +519,7 @@ module.exports.init = (settings, callback) ->
     send_with_instant_expiry_css_headers = (res, data) ->
         res.setHeader 'Content-Type', "text/css;charset=UTF-8"
         send_with_instant_expiry res, data
-        
+
     app.get "#{paths['url']['js']}/:filename.js", (req, res) ->
         send_response req, res, "js"
 
@@ -550,7 +550,7 @@ module.exports.init = (settings, callback) ->
             is_enoent = true
             res.send 404
         stream.on 'data', (data) ->
-            js_spool += data.toString 'ascii'
+            js_spool += data.toString 'utf8'
         stream.on 'end', ->
             return if is_enoent
             send_with_instant_expiry_js_headers res, js_spool
