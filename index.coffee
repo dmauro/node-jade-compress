@@ -264,7 +264,7 @@ create_file = (hash, filetype, res) ->
             data = ""
             for chunk in spool
                 data += chunk
-            if filetype is "js"
+            if filetype is "js" && filename.substring(filename.length - 7) != ".min.js"
                 data = mangle_js data
             if filetype is "css"
                 data = sqwish.minify data
