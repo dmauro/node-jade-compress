@@ -38,7 +38,7 @@
     "should": "1.2.x",
     "zombie": "2.x.x",
     "coffee-script" : "1.x",
-    "jade": "0.x"
+    "jade": "<= 1.11.x"
   },
   "author": "David Mauro",
   "license": "BSD"
