@@ -23,7 +23,7 @@
     "node-sass": "0.5.x",
     "connect" : "2.3.2",
     "cron": "1.0.x",
-    "express" : "2.5.1",
+    "express" : "4.17.1",
     "mime" : "1.2.4",
     "uglify-js" : "1.1.1",
     "sqwish" : "0.2.0",
