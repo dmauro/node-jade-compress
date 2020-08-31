@@ -21,7 +21,7 @@
   ],
   "dependencies": {
     "node-sass": "0.5.x",
-    "connect" : "2.3.2",
+    "connect" : "3.7.0",
     "cron": "1.0.x",
     "express" : "2.5.1",
     "mime" : "1.2.4",
